@@ -219,6 +219,12 @@ async def delete_transaction(transaction_id: str):
 async def get_daily_cashflow(date: str):
     """Get cashflow for a specific date"""
     try:
+        # Validate date format
+        try:
+            datetime.fromisoformat(date)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Invalid date format. Use YYYY-MM-DD")
+            
         # Get transactions for the date
         transactions = await db.transactions.find({"date": date}).to_list(1000)
         
