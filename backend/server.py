@@ -171,6 +171,8 @@ async def get_transaction(transaction_id: str):
         if not transaction:
             raise HTTPException(status_code=404, detail="Transaction not found")
         return Transaction(**parse_from_mongo(transaction))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching transaction: {str(e)}")
 
