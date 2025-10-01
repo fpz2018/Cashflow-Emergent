@@ -473,6 +473,9 @@ def main():
         ("Individual Transaction", tester.test_individual_transaction),
         ("Update Transaction", tester.test_update_transaction),
         ("Cashflow Endpoints", tester.test_cashflow_endpoints),
+        ("Import Preview", tester.test_import_preview_endpoints),
+        ("Import Execute", tester.test_import_execute_endpoints),
+        ("Bank Reconciliation", tester.test_bank_reconciliation_endpoints),
         ("Delete Transaction", tester.test_delete_transaction),
         ("Error Handling", tester.test_error_handling)
     ]
