@@ -341,6 +341,373 @@ async def get_expense_categories():
     """Get available expense categories"""
     return [category.value for category in ExpenseCategory]
 
+# Import Utility Functions
+def parse_csv_file(file_content: str, delimiter: str = ',') -> List[Dict[str, str]]:
+    """Parse CSV content and return list of dictionaries"""
+    try:
+        csv_reader = csv.DictReader(io.StringIO(file_content), delimiter=delimiter)
+        return [row for row in csv_reader]
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error parsing CSV: {str(e)}")
+
+def validate_epd_declaratie_row(row: Dict[str, str], row_number: int) -> ImportPreviewItem:
+    """Validate EPD declaratie row and return preview item"""
+    errors = []
+    mapped_data = {}
+    
+    # Map columns: factuur, datum, verzekeraar, bedrag
+    try:
+        mapped_data['invoice_number'] = row.get('factuur', '').strip()
+        if not mapped_data['invoice_number']:
+            errors.append('Factuur nummer is verplicht')
+            
+        # Parse date
+        date_str = row.get('datum', '').strip()
+        if date_str:
+            try:
+                mapped_data['date'] = datetime.strptime(date_str, '%Y-%m-%d').date().isoformat()
+            except ValueError:
+                try:
+                    mapped_data['date'] = datetime.strptime(date_str, '%d-%m-%Y').date().isoformat()
+                except ValueError:
+                    errors.append(f'Ongeldige datum format: {date_str}')
+        else:
+            errors.append('Datum is verplicht')
+            
+        # Parse amount
+        amount_str = row.get('bedrag', '').strip().replace(',', '.')
+        if amount_str:
+            try:
+                mapped_data['amount'] = float(amount_str)
+                if mapped_data['amount'] <= 0:
+                    errors.append('Bedrag moet groter zijn dan 0')
+            except (ValueError, InvalidOperation):
+                errors.append(f'Ongeldig bedrag: {amount_str}')
+        else:
+            errors.append('Bedrag is verplicht')
+            
+        # Verzekeraar
+        mapped_data['patient_name'] = row.get('verzekeraar', '').strip()
+        mapped_data['description'] = f"Declaratie {mapped_data.get('invoice_number', '')} - {mapped_data.get('patient_name', '')}"
+        mapped_data['type'] = 'income'
+        mapped_data['category'] = 'zorgverzekeraar'
+        
+    except Exception as e:
+        errors.append(f'Verwerkingsfout: {str(e)}')
+    
+    status = 'error' if errors else 'valid'
+    return ImportPreviewItem(
+        row_number=row_number,
+        mapped_data=mapped_data,
+        validation_errors=errors,
+        import_status=status
+    )
+
+def validate_epd_particulier_row(row: Dict[str, str], row_number: int) -> ImportPreviewItem:
+    """Validate EPD particulier row and return preview item"""
+    errors = []
+    mapped_data = {}
+    
+    # Map columns: factuur, datum, debiteur, bedrag
+    try:
+        mapped_data['invoice_number'] = row.get('factuur', '').strip()
+        if not mapped_data['invoice_number']:
+            errors.append('Factuur nummer is verplicht')
+            
+        # Parse date
+        date_str = row.get('datum', '').strip()
+        if date_str:
+            try:
+                mapped_data['date'] = datetime.strptime(date_str, '%Y-%m-%d').date().isoformat()
+            except ValueError:
+                try:
+                    mapped_data['date'] = datetime.strptime(date_str, '%d-%m-%Y').date().isoformat()
+                except ValueError:
+                    errors.append(f'Ongeldige datum format: {date_str}')
+        else:
+            errors.append('Datum is verplicht')
+            
+        # Parse amount
+        amount_str = row.get('bedrag', '').strip().replace(',', '.')
+        if amount_str:
+            try:
+                mapped_data['amount'] = float(amount_str)
+                if mapped_data['amount'] <= 0:
+                    errors.append('Bedrag moet groter zijn dan 0')
+            except (ValueError, InvalidOperation):
+                errors.append(f'Ongeldig bedrag: {amount_str}')
+        else:
+            errors.append('Bedrag is verplicht')
+            
+        # Debiteur
+        mapped_data['patient_name'] = row.get('debiteur', '').strip()
+        mapped_data['description'] = f"Particuliere factuur {mapped_data.get('invoice_number', '')} - {mapped_data.get('patient_name', '')}"
+        mapped_data['type'] = 'income'
+        mapped_data['category'] = 'particulier'
+        
+    except Exception as e:
+        errors.append(f'Verwerkingsfout: {str(e)}')
+    
+    status = 'error' if errors else 'valid'
+    return ImportPreviewItem(
+        row_number=row_number,
+        mapped_data=mapped_data,
+        validation_errors=errors,
+        import_status=status
+    )
+
+def validate_bunq_row(row: Dict[str, str], row_number: int) -> ImportPreviewItem:
+    """Validate BUNQ bank row and return preview item"""
+    errors = []
+    mapped_data = {}
+    
+    # Common BUNQ CSV columns: Date, Amount, Counterparty, Description, Account
+    try:
+        # Parse date
+        date_str = row.get('Date', '').strip() or row.get('datum', '').strip()
+        if date_str:
+            try:
+                mapped_data['date'] = datetime.strptime(date_str, '%Y-%m-%d').date().isoformat()
+            except ValueError:
+                try:
+                    mapped_data['date'] = datetime.strptime(date_str, '%d-%m-%Y').date().isoformat()
+                except ValueError:
+                    errors.append(f'Ongeldige datum format: {date_str}')
+        else:
+            errors.append('Datum is verplicht')
+            
+        # Parse amount
+        amount_str = row.get('Amount', '').strip() or row.get('bedrag', '').strip()
+        amount_str = amount_str.replace(',', '.')
+        if amount_str:
+            try:
+                mapped_data['amount'] = abs(float(amount_str))  # Use absolute value
+                mapped_data['original_amount'] = float(amount_str)  # Keep original for reconciliation
+            except (ValueError, InvalidOperation):
+                errors.append(f'Ongeldig bedrag: {amount_str}')
+        else:
+            errors.append('Bedrag is verplicht')
+            
+        # Other fields
+        mapped_data['counterparty'] = row.get('Counterparty', '').strip() or row.get('tegenpartij', '').strip()
+        mapped_data['description'] = row.get('Description', '').strip() or row.get('omschrijving', '').strip()
+        mapped_data['account_number'] = row.get('Account', '').strip() or row.get('rekening', '').strip()
+        
+    except Exception as e:
+        errors.append(f'Verwerkingsfout: {str(e)}')
+    
+    status = 'error' if errors else 'valid'
+    return ImportPreviewItem(
+        row_number=row_number,
+        mapped_data=mapped_data,
+        validation_errors=errors,
+        import_status=status
+    )
+
+# Import Endpoints
+@api_router.post("/import/preview")
+async def preview_import(
+    file: UploadFile = File(...),
+    import_type: str = Form(...)
+):
+    """Preview import data before processing"""
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Alleen CSV bestanden zijn toegestaan")
+    
+    try:
+        # Read file content
+        content = await file.read()
+        content_str = content.decode('utf-8')
+        
+        # Parse CSV
+        rows = parse_csv_file(content_str)
+        
+        if not rows:
+            raise HTTPException(status_code=400, detail="CSV bestand is leeg")
+        
+        # Validate rows based on import type
+        preview_items = []
+        valid_count = 0
+        error_count = 0
+        
+        for i, row in enumerate(rows[:100], 1):  # Limit preview to 100 rows
+            if import_type == 'epd_declaraties':
+                item = validate_epd_declaratie_row(row, i)
+            elif import_type == 'epd_particulier':
+                item = validate_epd_particulier_row(row, i)
+            elif import_type == 'bank_bunq':
+                item = validate_bunq_row(row, i)
+            else:
+                raise HTTPException(status_code=400, detail=f"Onbekend import type: {import_type}")
+            
+            preview_items.append(item)
+            if item.import_status == 'valid':
+                valid_count += 1
+            else:
+                error_count += 1
+        
+        # Column mapping
+        column_mapping = {}
+        if rows:
+            if import_type == 'epd_declaraties':
+                column_mapping = {'factuur': 'Factuur Nummer', 'datum': 'Datum', 'verzekeraar': 'Verzekeraar', 'bedrag': 'Bedrag'}
+            elif import_type == 'epd_particulier':
+                column_mapping = {'factuur': 'Factuur Nummer', 'datum': 'Datum', 'debiteur': 'Debiteur', 'bedrag': 'Bedrag'}
+            elif import_type == 'bank_bunq':
+                column_mapping = {key: key for key in rows[0].keys()}
+        
+        return ImportPreview(
+            file_name=file.filename,
+            import_type=import_type,
+            total_rows=len(rows),
+            valid_rows=valid_count,
+            error_rows=error_count,
+            preview_items=preview_items[:20],  # Return first 20 items for preview
+            column_mapping=column_mapping
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Fout bij verwerken bestand: {str(e)}")
+
+@api_router.post("/import/execute", response_model=ImportResult)
+async def execute_import(
+    file: UploadFile = File(...),
+    import_type: str = Form(...)
+):
+    """Execute the import after preview confirmation"""
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Alleen CSV bestanden zijn toegestaan")
+    
+    try:
+        # Read and parse file
+        content = await file.read()
+        content_str = content.decode('utf-8')
+        rows = parse_csv_file(content_str)
+        
+        imported_count = 0
+        error_count = 0
+        errors = []
+        created_transactions = []
+        
+        for i, row in enumerate(rows, 1):
+            try:
+                # Validate and map data
+                if import_type == 'epd_declaraties':
+                    item = validate_epd_declaratie_row(row, i)
+                elif import_type == 'epd_particulier':
+                    item = validate_epd_particulier_row(row, i)
+                elif import_type == 'bank_bunq':
+                    # For bank data, store as bank transactions for reconciliation
+                    item = validate_bunq_row(row, i)
+                    if item.import_status == 'valid':
+                        bank_trans = BankTransaction(**item.mapped_data)
+                        bank_dict = prepare_for_mongo(bank_trans.dict())
+                        await db.bank_transactions.insert_one(bank_dict)
+                        imported_count += 1
+                        created_transactions.append(bank_trans.id)
+                    continue
+                else:
+                    raise HTTPException(status_code=400, detail=f"Onbekend import type: {import_type}")
+                
+                if item.import_status == 'valid':
+                    # Create transaction
+                    transaction_obj = Transaction(**item.mapped_data)
+                    mongo_dict = prepare_for_mongo(transaction_obj.dict())
+                    await db.transactions.insert_one(mongo_dict)
+                    imported_count += 1
+                    created_transactions.append(transaction_obj.id)
+                else:
+                    error_count += 1
+                    errors.append(f"Rij {i}: {', '.join(item.validation_errors)}")
+                    
+            except Exception as e:
+                error_count += 1
+                errors.append(f"Rij {i}: {str(e)}")
+        
+        return ImportResult(
+            success=True,
+            imported_count=imported_count,
+            error_count=error_count,
+            errors=errors[:10],  # Limit to first 10 errors
+            created_transactions=created_transactions
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Import fout: {str(e)}")
+
+# Bank Reconciliation Endpoints
+@api_router.get("/bank-reconciliation/unmatched")
+async def get_unmatched_bank_transactions():
+    """Get unmatched bank transactions for reconciliation"""
+    try:
+        bank_transactions = await db.bank_transactions.find({"reconciled": False}).to_list(1000)
+        return [BankTransaction(**parse_from_mongo(bt)) for bt in bank_transactions]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching bank transactions: {str(e)}")
+
+@api_router.post("/bank-reconciliation/match")
+async def match_bank_transaction(bank_transaction_id: str, cashflow_transaction_id: str):
+    """Match a bank transaction with a cashflow transaction"""
+    try:
+        # Update bank transaction
+        await db.bank_transactions.update_one(
+            {"id": bank_transaction_id},
+            {"$set": {"reconciled": True}}
+        )
+        
+        # Update cashflow transaction
+        await db.transactions.update_one(
+            {"id": cashflow_transaction_id},
+            {"$set": {"reconciled": True}}
+        )
+        
+        # Create reconciliation record
+        reconciliation = BankReconciliation(
+            bank_transaction_id=bank_transaction_id,
+            bank_date=date.today(),
+            bank_amount=0.0,  # Will be filled from actual bank transaction
+            bank_description="",
+            matched_transaction_id=cashflow_transaction_id,
+            reconciliation_status="matched",
+            match_confidence=1.0
+        )
+        
+        reconciliation_dict = prepare_for_mongo(reconciliation.dict())
+        await db.reconciliations.insert_one(reconciliation_dict)
+        
+        return {"message": "Transacties succesvol gekoppeld"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error matching transactions: {str(e)}")
+
+@api_router.get("/bank-reconciliation/suggestions/{bank_transaction_id}")
+async def get_reconciliation_suggestions(bank_transaction_id: str):
+    """Get suggested matches for a bank transaction"""
+    try:
+        # Get bank transaction
+        bank_trans = await db.bank_transactions.find_one({"id": bank_transaction_id})
+        if not bank_trans:
+            raise HTTPException(status_code=404, detail="Bank transactie niet gevonden")
+        
+        bank_amount = bank_trans.get('amount', 0)
+        bank_date = bank_trans.get('date', '')
+        
+        # Find potential matches based on amount and date proximity
+        date_obj = datetime.fromisoformat(bank_date).date() if bank_date else date.today()
+        start_date = (date_obj - timedelta(days=7)).isoformat()
+        end_date = (date_obj + timedelta(days=7)).isoformat()
+        
+        potential_matches = await db.transactions.find({
+            "reconciled": False,
+            "amount": bank_amount,
+            "date": {"$gte": start_date, "$lte": end_date}
+        }).to_list(10)
+        
+        return [Transaction(**parse_from_mongo(trans)) for trans in potential_matches]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error finding suggestions: {str(e)}")
+
 # Legacy routes (keep for compatibility)
 @api_router.get("/")
 async def root():
