@@ -222,6 +222,194 @@ class CashflowAPITester:
         
         return success
 
+    def create_test_csv(self, import_type):
+        """Create test CSV content for different import types"""
+        if import_type == 'epd_declaraties':
+            csv_content = """factuur,datum,verzekeraar,bedrag
+INV001,2025-01-15,CZ Zorgverzekeraar,150.50
+INV002,2025-01-16,VGZ,75.00
+INV003,2025-01-17,Zilveren Kruis,200.25"""
+        elif import_type == 'epd_particulier':
+            csv_content = """factuur,datum,debiteur,bedrag
+PART001,2025-01-15,Jan de Vries,85.00
+PART002,2025-01-16,Marie Jansen,120.50
+PART003,2025-01-17,Piet Bakker,95.75"""
+        elif import_type == 'bank_bunq':
+            csv_content = """Date,Amount,Counterparty,Description,Account
+2025-01-15,150.50,CZ Zorgverzekeraar,Betaling declaratie INV001,NL91BUNQ0123456789
+2025-01-16,-45.00,Office Supplies BV,Kantoormateriaal,NL91BUNQ0123456789
+2025-01-17,200.25,Zilveren Kruis,Betaling declaratie INV003,NL91BUNQ0123456789"""
+        else:
+            return ""
+        
+        return csv_content
+
+    def test_import_preview_endpoints(self):
+        """Test import preview functionality"""
+        print("\n📤 Testing Import Preview Endpoints...")
+        
+        import_types = ['epd_declaraties', 'epd_particulier', 'bank_bunq']
+        all_success = True
+        
+        for import_type in import_types:
+            print(f"\n--- Testing {import_type} import preview ---")
+            
+            # Create test CSV
+            csv_content = self.create_test_csv(import_type)
+            
+            # Test preview endpoint with multipart form data
+            files = {
+                'file': ('test.csv', csv_content, 'text/csv')
+            }
+            data = {
+                'import_type': import_type
+            }
+            
+            url = f"{self.api_url}/import/preview"
+            print(f"   URL: {url}")
+            
+            try:
+                response = requests.post(url, data=data, files=files)
+                success = response.status_code == 200
+                
+                if success:
+                    self.tests_passed += 1
+                    print(f"✅ Passed - Status: {response.status_code}")
+                    try:
+                        response_data = response.json()
+                        print(f"  📊 Preview results:")
+                        print(f"    - Total rows: {response_data.get('total_rows', 0)}")
+                        print(f"    - Valid rows: {response_data.get('valid_rows', 0)}")
+                        print(f"    - Error rows: {response_data.get('error_rows', 0)}")
+                        print(f"    - File name: {response_data.get('file_name', 'N/A')}")
+                    except:
+                        pass
+                else:
+                    print(f"❌ Failed - Expected 200, got {response.status_code}")
+                    try:
+                        print(f"   Error: {response.json()}")
+                    except:
+                        print(f"   Response: {response.text}")
+                    all_success = False
+                
+                self.tests_run += 1
+                
+            except Exception as e:
+                print(f"❌ Failed - Error: {str(e)}")
+                all_success = False
+                self.tests_run += 1
+        
+        return all_success
+
+    def test_import_execute_endpoints(self):
+        """Test import execution functionality"""
+        print("\n⚡ Testing Import Execute Endpoints...")
+        
+        # Test EPD declaraties import
+        csv_content = self.create_test_csv('epd_declaraties')
+        files = {
+            'file': ('test_declaraties.csv', csv_content, 'text/csv')
+        }
+        data = {
+            'import_type': 'epd_declaraties'
+        }
+        
+        url = f"{self.api_url}/import/execute"
+        print(f"   URL: {url}")
+        
+        try:
+            response = requests.post(url, data=data, files=files)
+            success = response.status_code == 200
+            
+            if success:
+                self.tests_passed += 1
+                print(f"✅ Passed - Status: {response.status_code}")
+                try:
+                    response_data = response.json()
+                    print(f"  📊 Import results:")
+                    print(f"    - Success: {response_data.get('success', False)}")
+                    print(f"    - Imported count: {response_data.get('imported_count', 0)}")
+                    print(f"    - Error count: {response_data.get('error_count', 0)}")
+                    print(f"    - Created transactions: {len(response_data.get('created_transactions', []))}")
+                except:
+                    pass
+            else:
+                print(f"❌ Failed - Expected 200, got {response.status_code}")
+                try:
+                    print(f"   Error: {response.json()}")
+                except:
+                    print(f"   Response: {response.text}")
+            
+            self.tests_run += 1
+            return success
+            
+        except Exception as e:
+            print(f"❌ Failed - Error: {str(e)}")
+            self.tests_run += 1
+            return False
+
+    def test_bank_reconciliation_endpoints(self):
+        """Test bank reconciliation functionality"""
+        print("\n🏦 Testing Bank Reconciliation Endpoints...")
+        
+        # Test get unmatched bank transactions
+        success1, _ = self.run_test(
+            "Get Unmatched Bank Transactions",
+            "GET",
+            "bank-reconciliation/unmatched",
+            200
+        )
+        
+        # First import some bank data to test reconciliation
+        csv_content = self.create_test_csv('bank_bunq')
+        files = {
+            'file': ('test_bank.csv', csv_content, 'text/csv')
+        }
+        data = {
+            'import_type': 'bank_bunq'
+        }
+        
+        url = f"{self.api_url}/import/execute"
+        
+        try:
+            response = requests.post(url, data=data, files=files)
+            success2 = response.status_code == 200
+            
+            if success2:
+                self.tests_passed += 1
+                print(f"✅ Bank data import - Status: {response.status_code}")
+                
+                # Test get unmatched again (should have data now)
+                success3, bank_data = self.run_test(
+                    "Get Unmatched Bank Transactions (with data)",
+                    "GET",
+                    "bank-reconciliation/unmatched",
+                    200
+                )
+                
+                if success3 and isinstance(bank_data, list) and len(bank_data) > 0:
+                    bank_transaction_id = bank_data[0].get('id')
+                    if bank_transaction_id:
+                        # Test suggestions endpoint
+                        success4, _ = self.run_test(
+                            "Get Reconciliation Suggestions",
+                            "GET",
+                            f"bank-reconciliation/suggestions/{bank_transaction_id}",
+                            200
+                        )
+                        return success1 and success2 and success3 and success4
+                
+                return success1 and success2 and success3
+            else:
+                print(f"❌ Bank data import failed - Status: {response.status_code}")
+                self.tests_run += 1
+                return success1 and False
+                
+        except Exception as e:
+            print(f"❌ Bank data import error: {str(e)}")
+            self.tests_run += 1
+            return success1 and False
+
     def test_error_handling(self):
         """Test error handling"""
         print("\n🚨 Testing Error Handling...")
@@ -243,7 +431,32 @@ class CashflowAPITester:
         # Test invalid date format
         success3 = self.run_test("Invalid Date Format", "GET", "cashflow/daily/invalid-date", 422)[0]
         
-        return success1 and success2 and success3
+        # Test invalid import type
+        csv_content = "test,data\n1,2"
+        files = {
+            'file': ('test.csv', csv_content, 'text/csv')
+        }
+        data = {
+            'import_type': 'invalid_type'
+        }
+        
+        url = f"{self.api_url}/import/preview"
+        
+        try:
+            response = requests.post(url, data=data, files=files)
+            success4 = response.status_code == 400
+            if success4:
+                self.tests_passed += 1
+                print(f"✅ Invalid Import Type - Status: {response.status_code}")
+            else:
+                print(f"❌ Invalid Import Type - Expected 400, got {response.status_code}")
+            self.tests_run += 1
+        except Exception as e:
+            print(f"❌ Invalid Import Type error: {str(e)}")
+            success4 = False
+            self.tests_run += 1
+        
+        return success1 and success2 and success3 and success4
 
 def main():
     print("🏥 Starting Fysiotherapie Cashflow API Tests")
