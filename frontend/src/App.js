@@ -145,15 +145,28 @@ function App() {
               <Route 
                 path="/" 
                 element={
-                  <Dashboard 
-                    cashflowSummary={cashflowSummary}
-                    transactions={transactions}
-                    loading={loading}
-                    onCreateTransaction={createTransaction}
-                    onUpdateTransaction={updateTransaction}
-                    onDeleteTransaction={deleteTransaction}
-                    onRefresh={fetchCashflowSummary}
-                  />
+                  <>
+                    {activeView === 'dashboard' && (
+                      <Dashboard 
+                        cashflowSummary={cashflowSummary}
+                        transactions={transactions}
+                        loading={loading}
+                        onCreateTransaction={createTransaction}
+                        onUpdateTransaction={updateTransaction}
+                        onDeleteTransaction={deleteTransaction}
+                        onRefresh={fetchCashflowSummary}
+                      />
+                    )}
+                    
+                    {activeView === 'import' && (
+                      <ImportManager 
+                        onRefresh={() => {
+                          fetchCashflowSummary();
+                          fetchTransactions();
+                        }}
+                      />
+                    )}
+                  </>
                 } 
               />
             </Routes>
