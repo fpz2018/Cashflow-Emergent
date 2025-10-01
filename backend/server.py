@@ -118,6 +118,49 @@ class CashflowSummary(BaseModel):
     this_month: float
     total_transactions: int
 
+# Import Models
+class ImportPreviewItem(BaseModel):
+    row_number: int
+    mapped_data: Dict[str, Any]
+    validation_errors: List[str]
+    import_status: str  # 'valid', 'warning', 'error'
+
+class ImportPreview(BaseModel):
+    file_name: str
+    import_type: str  # 'epd_declaraties', 'epd_particulier', 'bank_bunq'
+    total_rows: int
+    valid_rows: int
+    error_rows: int
+    preview_items: List[ImportPreviewItem]
+    column_mapping: Dict[str, str]
+
+class ImportResult(BaseModel):
+    success: bool
+    imported_count: int
+    error_count: int
+    errors: List[str]
+    created_transactions: List[str]  # List of transaction IDs
+
+class BankReconciliation(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    bank_transaction_id: str
+    bank_date: date
+    bank_amount: float
+    bank_description: str
+    matched_transaction_id: Optional[str] = None
+    reconciliation_status: str  # 'unmatched', 'matched', 'ignored'
+    match_confidence: float = 0.0  # 0-1 score
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class BankTransaction(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    date: date
+    amount: float
+    description: str
+    counterparty: Optional[str] = None
+    account_number: Optional[str] = None
+    reconciled: bool = False
+
 # Transaction endpoints
 @api_router.post("/transactions", response_model=Transaction)
 async def create_transaction(transaction: TransactionCreate):
