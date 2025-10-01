@@ -111,13 +111,25 @@ function App() {
                 
                 <nav className="flex items-center space-x-6">
                   <button 
-                    className="text-slate-600 hover:text-slate-900 font-medium transition-colors"
-                    onClick={fetchCashflowSummary}
+                    className={`font-medium transition-colors ${
+                      activeView === 'dashboard' ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                    onClick={() => {
+                      setActiveView('dashboard');
+                      fetchCashflowSummary();
+                    }}
+                    data-testid="nav-dashboard"
                   >
                     Dashboard
                   </button>
-                  <button className="text-slate-600 hover:text-slate-900 font-medium transition-colors">
-                    Transacties
+                  <button 
+                    className={`font-medium transition-colors ${
+                      activeView === 'import' ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                    onClick={() => setActiveView('import')}
+                    data-testid="nav-import"
+                  >
+                    Import & Reconciliatie
                   </button>
                   <button className="text-slate-600 hover:text-slate-900 font-medium transition-colors">
                     Rapporten
