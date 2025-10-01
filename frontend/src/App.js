@@ -16,6 +16,7 @@ function App() {
   const [transactions, setTransactions] = useState([]);
   const [cashflowSummary, setCashflowSummary] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [activeView, setActiveView] = useState('dashboard');
 
   // Fetch cashflow summary
   const fetchCashflowSummary = async () => {
