@@ -914,6 +914,73 @@ def validate_bunq_row(row: Dict[str, str], row_number: int) -> ImportPreviewItem
     )
 
 # Import Endpoints
+@api_router.post("/import/debug-preview")
+async def debug_import_preview(
+    file: UploadFile = File(...),
+    import_type: str = Form(...)
+):
+    """Debug preview with detailed error reporting and sample rows"""
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Alleen CSV bestanden zijn toegestaan")
+    
+    try:
+        # Read and parse file with proper encoding detection
+        content = await file.read()
+        
+        # Try different encodings
+        encodings = ['utf-8', 'utf-8-sig', 'iso-8859-1', 'cp1252']
+        content_str = None
+        
+        for encoding in encodings:
+            try:
+                content_str = content.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+                
+        if content_str is None:
+            raise HTTPException(status_code=400, detail="Kan bestand encoding niet detecteren")
+        
+        # Parse CSV and get sample data
+        rows = parse_csv_file(content_str)
+        
+        if not rows:
+            return {"error": "Geen geldige rijen gevonden", "sample_rows": [], "total_rows": 0}
+        
+        # Process first 10 rows for detailed debugging
+        debug_results = []
+        for i, row in enumerate(rows[:10], 1):
+            if import_type == 'bank_bunq':
+                item = validate_bunq_row(row, i)
+            elif import_type == 'epd_declaraties':
+                item = validate_epd_declaratie_row(row, i)
+            elif import_type == 'epd_particulier':
+                item = validate_epd_particulier_row(row, i)
+            else:
+                raise HTTPException(status_code=400, detail=f"Onbekend import type: {import_type}")
+            
+            debug_results.append({
+                'row_number': i,
+                'original_row': row,
+                'mapped_data': item.mapped_data,
+                'validation_errors': item.validation_errors,
+                'status': item.import_status
+            })
+        
+        # Get column info
+        columns = list(rows[0].keys()) if rows else []
+        
+        return {
+            'file_name': file.filename,
+            'total_rows': len(rows),
+            'columns_found': columns,
+            'debug_results': debug_results,
+            'sample_raw_rows': rows[:5]
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Debug fout: {str(e)}")
+
 @api_router.post("/import/inspect-columns")
 async def inspect_csv_columns(file: UploadFile = File(...)):
     """Inspect CSV file columns for debugging"""
