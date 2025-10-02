@@ -58,15 +58,23 @@ const ImportPreview = ({ previewData, onComplete, onBack }) => {
     setError('');
 
     try {
-      // For now, we'll show a success message
-      // In a real implementation, you'd re-upload or store the file for execution
-      onComplete({
-        success: true,
-        imported_count: previewData.valid_rows,
-        error_count: previewData.error_rows,
-        errors: [],
-        created_transactions: []
+      // Check if we have the original file and import type
+      if (!previewData?.originalFile || !previewData?.originalImportType) {
+        throw new Error('Origineel bestand niet beschikbaar voor import');
+      }
+
+      // Re-upload the file for execution
+      const formData = new FormData();
+      formData.append('file', previewData.originalFile);
+      formData.append('import_type', previewData.originalImportType);
+
+      const response = await axios.post(`${API}/import/execute`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
+
+      onComplete(response.data);
     } catch (error) {
       console.error('Import error:', error);
       setError(error.response?.data?.detail || 'Fout bij importeren');
