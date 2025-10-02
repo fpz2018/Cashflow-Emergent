@@ -148,20 +148,47 @@ Voor BUNQ bestanden verwachten we kolommen zoals:
     setError('');
 
     try {
-      // Debug mode - show detailed file inspection
-      const inspectFormData = new FormData();
-      inspectFormData.append('file', selectedFile);
+      // Debug mode - show detailed file inspection  
+      const debugFormData = new FormData();
+      debugFormData.append('file', selectedFile);
+      debugFormData.append('import_type', importType);
       
-      const inspectResponse = await axios.post(`${API}/import/inspect-columns`, inspectFormData, {
+      const debugResponse = await axios.post(`${API}/import/debug-preview`, debugFormData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
 
-      console.log('DEBUG - File inspection:', inspectResponse.data);
+      console.log('DEBUG - Detailed inspection:', debugResponse.data);
       
-      // Show debug info in alert for now
-      alert(`DEBUG INFO:\n\nFile: ${selectedFile.name}\nSize: ${formatFileSize(selectedFile.size)}\nType: ${importType}\n\nColumns found: ${JSON.stringify(inspectResponse.data.columns, null, 2)}\n\nFirst few rows: ${JSON.stringify(inspectResponse.data.preview, null, 2)}`);
+      // Create a detailed debug message
+      const debugInfo = debugResponse.data;
+      const errorSummary = debugInfo.debug_results
+        .filter(r => r.status === 'error')
+        .map(r => `Rij ${r.row_number}: ${r.validation_errors.join(', ')}`)
+        .join('\n');
+      
+      const debugMessage = `DEBUG RAPPORT:
+      
+Bestand: ${debugInfo.file_name}
+Totaal rijen: ${debugInfo.total_rows}
+Import type: ${importType}
+
+GEVONDEN KOLOMMEN:
+${JSON.stringify(debugInfo.columns_found, null, 2)}
+
+EERSTE 10 RIJEN STATUS:
+${debugInfo.debug_results.map(r => 
+  `Rij ${r.row_number}: ${r.status} ${r.status === 'error' ? '- ' + r.validation_errors.join(', ') : ''}`
+).join('\n')}
+
+${errorSummary ? `\nFOUTEN:\n${errorSummary}` : ''}
+
+SAMPLE RAW DATA:
+${JSON.stringify(debugInfo.sample_raw_rows, null, 2)}`;
+      
+      // Show debug info in alert for now (could be improved with modal)
+      alert(debugMessage);
       
     } catch (error) {
       console.error('Debug preview error:', error);
