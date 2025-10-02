@@ -220,7 +220,7 @@ const ImportPreview = ({ previewData, onComplete, onBack }) => {
                     </>
                   )}
                   <td className="px-4 py-3 text-sm text-red-600">
-                    {item.validation_errors.join(', ') || '-'}
+                    {item?.validation_errors?.join(', ') || '-'}
                   </td>
                 </tr>
               ))}
