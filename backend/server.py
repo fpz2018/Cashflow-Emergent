@@ -505,10 +505,11 @@ def validate_bunq_row(row: Dict[str, str], row_number: int) -> ImportPreviewItem
         # First, let's debug what columns we actually have
         available_columns = list(row.keys())
         
-        # Parse date - try extensive list of possible column names
+        # Parse date - try extensive list of possible column names (including exact BUNQ format)
         date_str = ''
         date_columns = [
-            'Date', 'datum', 'Datum', 'date', 'DATE',
+            'datum',  # Exact BUNQ column name first
+            'Date', 'Datum', 'date', 'DATE',
             'Transactiedatum', 'transactiedatum', 'Transaction Date', 'transaction_date',
             'Boekingsdatum', 'boekingsdatum', 'Booking Date', 'booking_date',
             'Created', 'created', 'Tijd', 'tijd', 'Time', 'time'
