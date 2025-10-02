@@ -135,7 +135,7 @@ const ImportPreview = ({ previewData, onComplete, onBack }) => {
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Rij
                 </th>
-                {previewData.import_type !== 'bank_bunq' && (
+                {previewData?.import_type !== 'bank_bunq' && (
                   <>
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Factuur
@@ -144,14 +144,14 @@ const ImportPreview = ({ previewData, onComplete, onBack }) => {
                       Datum
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      {previewData.import_type === 'epd_declaraties' ? 'Verzekeraar' : 'Debiteur'}
+                      {previewData?.import_type === 'epd_declaraties' ? 'Verzekeraar' : 'Debiteur'}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Bedrag
                     </th>
                   </>
                 )}
-                {previewData.import_type === 'bank_bunq' && (
+                {previewData?.import_type === 'bank_bunq' && (
                   <>
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Datum
