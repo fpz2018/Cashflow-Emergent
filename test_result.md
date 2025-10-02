@@ -140,9 +140,9 @@
     implemented: true
     working: false
     file: "/app/frontend/src/components/BankReconciliation.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: false
           agent: "main"
@@ -150,6 +150,9 @@
         - working: false
           agent: "main"
           comment: "Frontend code geïmplementeerd - handleMatchCrediteur functie toegevoegd, crediteur vs transactie onderscheid in UI, aparte knop voor crediteur matching. Echter navigatie naar Bank Reconciliation tab lijkt issues te hebben."
+        - working: false
+          agent: "testing"
+          comment: "COMPREHENSIVE TESTING COMPLETED - Frontend UI is working correctly but backend is not providing crediteur suggestions. ✅ Navigation works perfectly (Import & Reconciliatie → Bank Reconciliatie tab) ✅ Component loads without loading issues ✅ Bank transactions load correctly (1000 transactions) ✅ Transaction selection works ✅ Suggestions API call works ✅ Frontend code correctly handles match_type distinction ✅ UI would show purple 'Koppel Crediteur' buttons for crediteur suggestions ❌ CRITICAL ISSUE: Backend /api/bank-reconciliation/suggestions/{id} only returns match_type: 'transaction', never match_type: 'crediteur' ❌ No crediteur suggestions are being provided by backend ❌ All 4 suggestions returned have match_type: 'transaction' instead of expected crediteur suggestions. Frontend implementation is correct - issue is backend not providing crediteur data as expected."
 
   - task: "Dashboard cashflow forecast visualization"
     implemented: false
