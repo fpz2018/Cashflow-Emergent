@@ -491,35 +491,71 @@ def validate_bunq_row(row: Dict[str, str], row_number: int) -> ImportPreviewItem
     errors = []
     mapped_data = {}
     
-    # Common BUNQ CSV columns: Date, Amount, Counterparty, Description, Account
-    # Also try Dutch alternatives
+    # Extended column name mapping for different BUNQ export formats
     try:
-        # Parse date - try multiple column names and formats
+        # First, let's debug what columns we actually have
+        available_columns = list(row.keys())
+        
+        # Parse date - try extensive list of possible column names
         date_str = ''
-        for date_col in ['Date', 'datum', 'Datum', 'date']:
-            if date_col in row and row[date_col]:
+        date_columns = [
+            'Date', 'datum', 'Datum', 'date', 'DATE',
+            'Transactiedatum', 'transactiedatum', 'Transaction Date', 'transaction_date',
+            'Boekingsdatum', 'boekingsdatum', 'Booking Date', 'booking_date',
+            'Created', 'created', 'Tijd', 'tijd', 'Time', 'time'
+        ]
+        
+        found_date_col = None
+        for date_col in date_columns:
+            if date_col in row and row[date_col] and str(row[date_col]).strip():
                 date_str = str(row[date_col]).strip()
+                found_date_col = date_col
                 break
                 
         if date_str:
             try:
-                mapped_data['date'] = datetime.strptime(date_str, '%Y-%m-%d').date().isoformat()
-            except ValueError:
-                try:
-                    mapped_data['date'] = datetime.strptime(date_str, '%d-%m-%Y').date().isoformat()
-                except ValueError:
+                # Try various date formats
+                date_formats = [
+                    '%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%m/%d/%Y',
+                    '%Y/%m/%d', '%d.%m.%Y', '%Y.%m.%d',
+                    '%Y-%m-%d %H:%M:%S', '%d-%m-%Y %H:%M:%S'
+                ]
+                
+                parsed_date = None
+                for fmt in date_formats:
                     try:
-                        mapped_data['date'] = datetime.strptime(date_str, '%d/%m/%Y').date().isoformat()
+                        parsed_date = datetime.strptime(date_str, fmt).date()
+                        break
                     except ValueError:
-                        errors.append(f'Ongeldige datum format: {date_str}')
+                        continue
+                        
+                if parsed_date:
+                    mapped_data['date'] = parsed_date.isoformat()
+                else:
+                    errors.append(f'Ongeldige datum format: {date_str}')
+                    
+            except Exception as e:
+                errors.append(f'Datum parsing fout: {str(e)}')
         else:
-            errors.append('Datum kolom niet gevonden of leeg')
+            errors.append(f'Datum kolom niet gevonden. Beschikbare kolommen: {", ".join(available_columns)}')
             
-        # Parse amount - try multiple column names
+        # Parse amount - try extensive list of possible column names
         amount_str = ''
-        for amount_col in ['Amount', 'bedrag', 'Bedrag', 'amount']:
-            if amount_col in row and row[amount_col]:
-                amount_str = str(row[amount_col]).strip().replace(',', '.')
+        amount_columns = [
+            'Amount', 'bedrag', 'Bedrag', 'amount', 'AMOUNT',
+            'Transactiebedrag', 'transactiebedrag', 'Transaction Amount', 'transaction_amount',
+            'Saldo mutatie', 'saldo_mutatie', 'Balance Change', 'balance_change',
+            'Waarde', 'waarde', 'Value', 'value', 'EUR', 'eur',
+            'Debet', 'debet', 'Credit', 'credit'
+        ]
+        
+        found_amount_col = None
+        for amount_col in amount_columns:
+            if amount_col in row and row[amount_col] and str(row[amount_col]).strip():
+                amount_str = str(row[amount_col]).strip()
+                # Remove currency symbols and clean up
+                amount_str = amount_str.replace('€', '').replace('EUR', '').replace(',', '.').strip()
+                found_amount_col = amount_col
                 break
                 
         if amount_str:
@@ -530,26 +566,49 @@ def validate_bunq_row(row: Dict[str, str], row_number: int) -> ImportPreviewItem
             except (ValueError, InvalidOperation):
                 errors.append(f'Ongeldig bedrag: {amount_str}')
         else:
-            errors.append('Bedrag kolom niet gevonden of leeg')
+            errors.append(f'Bedrag kolom niet gevonden. Beschikbare kolommen: {", ".join(available_columns)}')
             
-        # Other fields - safely get values
+        # Other fields - try extensive column names
         mapped_data['counterparty'] = ''
-        for counter_col in ['Counterparty', 'tegenpartij', 'Tegenpartij', 'counterparty']:
-            if counter_col in row and row[counter_col]:
+        counterparty_columns = [
+            'Counterparty', 'tegenpartij', 'Tegenpartij', 'counterparty',
+            'Naam tegenpartij', 'naam_tegenpartij', 'Counterparty Name', 'counterparty_name',
+            'Begunstigde', 'begunstigde', 'Beneficiary', 'beneficiary',
+            'Van/naar', 'van_naar', 'From/To', 'from_to'
+        ]
+        for counter_col in counterparty_columns:
+            if counter_col in row and row[counter_col] and str(row[counter_col]).strip():
                 mapped_data['counterparty'] = str(row[counter_col]).strip()
                 break
                 
         mapped_data['description'] = ''
-        for desc_col in ['Description', 'omschrijving', 'Omschrijving', 'description']:
-            if desc_col in row and row[desc_col]:
+        description_columns = [
+            'Description', 'omschrijving', 'Omschrijving', 'description',
+            'Transactieomschrijving', 'transactieomschrijving', 'Transaction Description', 'transaction_description',
+            'Memo', 'memo', 'Note', 'note', 'Notes', 'notes',
+            'Mededelingen', 'mededelingen', 'Message', 'message'
+        ]
+        for desc_col in description_columns:
+            if desc_col in row and row[desc_col] and str(row[desc_col]).strip():
                 mapped_data['description'] = str(row[desc_col]).strip()
                 break
                 
         mapped_data['account_number'] = ''
-        for acc_col in ['Account', 'rekening', 'Rekening', 'account']:
-            if acc_col in row and row[acc_col]:
+        account_columns = [
+            'Account', 'rekening', 'Rekening', 'account',
+            'IBAN', 'iban', 'Rekeningnummer', 'rekeningnummer',
+            'Account Number', 'account_number', 'From Account', 'from_account'
+        ]
+        for acc_col in account_columns:
+            if acc_col in row and row[acc_col] and str(row[acc_col]).strip():
                 mapped_data['account_number'] = str(row[acc_col]).strip()
                 break
+        
+        # Add debug info to help user understand what columns were found
+        if found_date_col:
+            mapped_data['_debug_date_column'] = found_date_col
+        if found_amount_col:
+            mapped_data['_debug_amount_column'] = found_amount_col
         
     except Exception as e:
         errors.append(f'Verwerkingsfout: {str(e)}')
