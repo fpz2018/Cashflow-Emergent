@@ -252,6 +252,35 @@ const ImportPreview = ({ previewData, onComplete, onBack }) => {
         </div>
       )}
 
+      {/* All Errors Display */}
+      {previewData?.all_errors && previewData.all_errors.length > 0 && (
+        <div className="modern-card">
+          <div className="modern-card-header">
+            <h4 className="text-lg font-semibold text-slate-900">Alle Import Fouten</h4>
+            <span className="text-sm text-slate-500">
+              {previewData.all_errors.length} van {previewData?.error_rows || 0} fouten
+            </span>
+          </div>
+          
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {previewData.all_errors.map((errorMsg, index) => (
+              <div 
+                key={index}
+                className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"
+              >
+                {errorMsg}
+              </div>
+            ))}
+            
+            {previewData.all_errors.length < (previewData?.error_rows || 0) && (
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 text-center">
+                En nog {(previewData?.error_rows || 0) - previewData.all_errors.length} fouten...
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Action Buttons */}
       <div className="flex justify-between items-center pt-6 border-t border-slate-200">
         <div className="text-sm text-slate-600">
