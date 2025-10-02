@@ -348,22 +348,81 @@ PART003,2025-01-17,Piet Bakker,95.75"""
             self.tests_run += 1
             return False
 
+    def test_crediteuren_endpoint(self):
+        """Test crediteuren endpoint"""
+        print("\n💳 Testing Crediteuren Endpoint...")
+        
+        # First create some test crediteuren data
+        test_crediteuren = [
+            {
+                "crediteur": "Huurmaatschappij Amsterdam",
+                "bedrag": 1200.00,
+                "dag": 1
+            },
+            {
+                "crediteur": "Energieleverancier Vattenfall",
+                "bedrag": 150.00,
+                "dag": 15
+            },
+            {
+                "crediteur": "Telefoonmaatschappij KPN",
+                "bedrag": 45.00,
+                "dag": 20
+            }
+        ]
+        
+        created_crediteuren = []
+        for crediteur_data in test_crediteuren:
+            success, response = self.run_test(
+                f"Create Crediteur {crediteur_data['crediteur']}",
+                "POST",
+                "crediteuren",
+                200,
+                data=crediteur_data
+            )
+            if success and 'id' in response:
+                created_crediteuren.append(response['id'])
+        
+        # Test get all crediteuren
+        success, crediteuren_data = self.run_test(
+            "Get All Crediteuren",
+            "GET",
+            "crediteuren",
+            200
+        )
+        
+        if success:
+            print(f"   Found {len(crediteuren_data)} crediteuren")
+            for crediteur in crediteuren_data[:3]:  # Show first 3
+                print(f"   - {crediteur.get('crediteur', 'N/A')}: €{crediteur.get('bedrag', 0)} (dag {crediteur.get('dag', 'N/A')})")
+        
+        return success
+
     def test_bank_reconciliation_endpoints(self):
-        """Test bank reconciliation functionality"""
+        """Test comprehensive bank reconciliation functionality"""
         print("\n🏦 Testing Bank Reconciliation Endpoints...")
         
-        # Test get unmatched bank transactions
-        success1, _ = self.run_test(
-            "Get Unmatched Bank Transactions",
+        # Test 1: Get unmatched bank transactions (initially empty)
+        success1, initial_unmatched = self.run_test(
+            "Get Unmatched Bank Transactions (initial)",
             "GET",
             "bank-reconciliation/unmatched",
             200
         )
         
-        # First import some bank data to test reconciliation
-        csv_content = self.create_test_csv('bank_bunq')
+        if success1:
+            print(f"   Initial unmatched transactions: {len(initial_unmatched)}")
+        
+        # Test 2: Import bank data to create test transactions
+        csv_content = """datum,bedrag,debiteur,omschrijving
+2025-01-15,-1200.00,Huurmaatschappij Amsterdam,Maandelijkse huur januari
+2025-01-16,150.50,CZ Zorgverzekeraar,Betaling declaratie INV001
+2025-01-17,-150.00,Energieleverancier Vattenfall,Energierekening januari
+2025-01-18,-45.00,Telefoonmaatschappij KPN,Telefoonrekening januari
+2025-01-19,200.25,Zilveren Kruis,Betaling declaratie INV003"""
+        
         files = {
-            'file': ('test_bank.csv', csv_content, 'text/csv')
+            'file': ('test_bank_reconciliation.csv', csv_content, 'text/csv')
         }
         data = {
             'import_type': 'bank_bunq'
@@ -379,7 +438,7 @@ PART003,2025-01-17,Piet Bakker,95.75"""
                 self.tests_passed += 1
                 print(f"✅ Bank data import - Status: {response.status_code}")
                 
-                # Test get unmatched again (should have data now)
+                # Test 3: Get unmatched bank transactions (should have data now)
                 success3, bank_data = self.run_test(
                     "Get Unmatched Bank Transactions (with data)",
                     "GET",
@@ -387,21 +446,78 @@ PART003,2025-01-17,Piet Bakker,95.75"""
                     200
                 )
                 
-                if success3 and isinstance(bank_data, list) and len(bank_data) > 0:
-                    bank_transaction_id = bank_data[0].get('id')
-                    if bank_transaction_id:
-                        # Test suggestions endpoint
-                        success4, _ = self.run_test(
-                            "Get Reconciliation Suggestions",
-                            "GET",
-                            f"bank-reconciliation/suggestions/{bank_transaction_id}",
-                            200
-                        )
-                        return success1 and success2 and success3 and success4
+                if success3 and isinstance(bank_data, list):
+                    print(f"   Found {len(bank_data)} unmatched bank transactions")
+                    
+                    if len(bank_data) > 0:
+                        bank_transaction = bank_data[0]
+                        bank_transaction_id = bank_transaction.get('id')
+                        print(f"   Testing with bank transaction: {bank_transaction.get('description', 'N/A')} (€{bank_transaction.get('amount', 0)})")
+                        
+                        if bank_transaction_id:
+                            # Test 4: Get reconciliation suggestions
+                            success4, suggestions = self.run_test(
+                                "Get Reconciliation Suggestions",
+                                "GET",
+                                f"bank-reconciliation/suggestions/{bank_transaction_id}",
+                                200
+                            )
+                            
+                            if success4 and isinstance(suggestions, list):
+                                print(f"   Found {len(suggestions)} suggestions")
+                                transaction_suggestions = [s for s in suggestions if s.get('match_type') == 'transaction']
+                                crediteur_suggestions = [s for s in suggestions if s.get('match_type') == 'crediteur']
+                                
+                                print(f"   - Transaction suggestions: {len(transaction_suggestions)}")
+                                print(f"   - Crediteur suggestions: {len(crediteur_suggestions)}")
+                                
+                                # Test 5: Test match-crediteur endpoint if we have crediteur suggestions
+                                success5 = True
+                                if crediteur_suggestions:
+                                    crediteur_suggestion = crediteur_suggestions[0]
+                                    crediteur_id = crediteur_suggestion.get('id')
+                                    
+                                    if crediteur_id:
+                                        success5, match_response = self.run_test(
+                                            "Match Bank Transaction with Crediteur",
+                                            "POST",
+                                            f"bank-reconciliation/match-crediteur?bank_transaction_id={bank_transaction_id}&crediteur_id={crediteur_id}",
+                                            200
+                                        )
+                                        
+                                        if success5:
+                                            print(f"   ✅ Successfully matched bank transaction with crediteur")
+                                            if 'created_expense_id' in match_response:
+                                                print(f"   Created expense transaction: {match_response['created_expense_id']}")
+                                
+                                # Test 6: Test transactions endpoint with reconciled filter
+                                success6, unreconciled_transactions = self.run_test(
+                                    "Get Unreconciled Transactions",
+                                    "GET",
+                                    "transactions?reconciled=false",
+                                    200
+                                )
+                                
+                                if success6:
+                                    print(f"   Found {len(unreconciled_transactions)} unreconciled transactions")
+                                
+                                return success1 and success2 and success3 and success4 and success5 and success6
+                            
+                            return success1 and success2 and success3 and success4
+                        
+                        return success1 and success2 and success3
+                    else:
+                        print("   ⚠️  No bank transactions found after import")
+                        return success1 and success2 and success3
                 
                 return success1 and success2 and success3
             else:
                 print(f"❌ Bank data import failed - Status: {response.status_code}")
+                try:
+                    error_detail = response.json()
+                    print(f"   Error: {error_detail}")
+                except:
+                    print(f"   Response: {response.text}")
                 self.tests_run += 1
                 return success1 and False
                 
