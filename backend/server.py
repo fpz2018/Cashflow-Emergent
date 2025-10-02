@@ -589,9 +589,10 @@ def validate_bunq_row(row: Dict[str, str], row_number: int) -> ImportPreviewItem
         else:
             errors.append(f'Bedrag kolom niet gevonden. Beschikbare kolommen: {", ".join(available_columns)}')
             
-        # Other fields - try extensive column names
+        # Other fields - try extensive column names (including exact BUNQ format)
         mapped_data['counterparty'] = ''
         counterparty_columns = [
+            'debiteur',  # Exact BUNQ column name first
             'Counterparty', 'tegenpartij', 'Tegenpartij', 'counterparty',
             'Naam tegenpartij', 'naam_tegenpartij', 'Counterparty Name', 'counterparty_name',
             'Begunstigde', 'begunstigde', 'Beneficiary', 'beneficiary',
