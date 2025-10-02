@@ -215,8 +215,18 @@ const BankReconciliation = ({ onRefresh }) => {
                     <strong>Tegenpartij:</strong> {transaction.counterparty || 'Onbekend'}
                   </div>
                   
-                  <div className="text-sm text-slate-600 truncate">
+                  <div className="text-sm text-slate-600 mb-2 truncate">
                     <strong>Omschrijving:</strong> {transaction.description || 'Geen omschrijving'}
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      transaction.amount < 0 
+                        ? 'bg-red-100 text-red-700' 
+                        : 'bg-green-100 text-green-700'
+                    }`}>
+                      {transaction.amount < 0 ? 'Uitgaand' : 'Inkomend'}
+                    </span>
                   </div>
                 </div>
               ))
