@@ -12,6 +12,7 @@ const ImportManager = ({ onRefresh }) => {
 
   const tabs = [
     { id: 'upload', label: 'Bestanden Uploaden', icon: 'upload' },
+    { id: 'copypaste', label: 'Copy & Paste', icon: 'clipboard' },
     { id: 'reconciliation', label: 'Bank Reconciliatie', icon: 'link' }
   ];
 
