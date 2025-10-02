@@ -388,6 +388,140 @@ async def get_expense_categories():
     """Get available expense categories"""
     return [category.value for category in ExpenseCategory]
 
+# Copy-paste parsing functions
+def parse_copy_paste_data(data: str, expected_columns: List[str]) -> List[Dict[str, str]]:
+    """Parse copy-paste data (tab/space separated) into structured format"""
+    lines = [line.strip() for line in data.strip().split('\n') if line.strip()]
+    
+    if not lines:
+        raise HTTPException(status_code=400, detail="Geen data gevonden")
+    
+    # Try different delimiters
+    delimiters = ['\t', ';', ',', '  ', ' ']
+    
+    for delimiter in delimiters:
+        try:
+            parsed_data = []
+            for i, line in enumerate(lines):
+                if delimiter == '  ':  # Multiple spaces
+                    parts = [p.strip() for p in line.split() if p.strip()]
+                else:
+                    parts = [p.strip() for p in line.split(delimiter) if p.strip()]
+                
+                if len(parts) == len(expected_columns):
+                    row_dict = {expected_columns[j]: parts[j] for j in range(len(parts))}
+                    parsed_data.append(row_dict)
+                elif len(parts) > 0:  # Skip empty lines, but report mismatched columns
+                    continue
+            
+            if len(parsed_data) > 0:
+                return parsed_data
+                
+        except Exception:
+            continue
+    
+    # If no delimiter worked, treat as space-separated
+    parsed_data = []
+    for line in lines:
+        parts = line.split()
+        if len(parts) >= len(expected_columns):
+            row_dict = {expected_columns[j]: parts[j] for j in range(len(expected_columns))}
+            parsed_data.append(row_dict)
+    
+    return parsed_data
+
+def validate_verzekeraar_data(data: Dict[str, str], row_number: int) -> ImportPreviewItem:
+    """Validate verzekeraar copy-paste data"""
+    errors = []
+    mapped_data = {}
+    
+    try:
+        # Validate naam
+        naam = data.get('naam', '').strip()
+        if not naam:
+            errors.append('Naam is verplicht')
+        else:
+            mapped_data['naam'] = naam
+        
+        # Validate termijn
+        termijn_str = data.get('termijn', '').strip()
+        if not termijn_str:
+            errors.append('Termijn is verplicht')
+        else:
+            try:
+                termijn = int(termijn_str)
+                if termijn < 0 or termijn > 365:
+                    errors.append('Termijn moet tussen 0 en 365 dagen zijn')
+                else:
+                    mapped_data['termijn'] = termijn
+            except ValueError:
+                errors.append(f'Ongeldige termijn: {termijn_str}')
+        
+    except Exception as e:
+        errors.append(f'Verwerkingsfout: {str(e)}')
+    
+    status = 'error' if errors else 'valid'
+    return ImportPreviewItem(
+        row_number=row_number,
+        mapped_data=mapped_data,
+        validation_errors=errors,
+        import_status=status
+    )
+
+def validate_crediteur_data(data: Dict[str, str], row_number: int) -> ImportPreviewItem:
+    """Validate crediteur copy-paste data"""
+    errors = []
+    mapped_data = {}
+    
+    try:
+        # Validate crediteur naam
+        crediteur = data.get('crediteur', '').strip()
+        if not crediteur:
+            errors.append('Crediteur naam is verplicht')
+        else:
+            mapped_data['crediteur'] = crediteur
+        
+        # Validate bedrag
+        bedrag_str = data.get('bedrag', '').strip()
+        if not bedrag_str:
+            errors.append('Bedrag is verplicht')
+        else:
+            try:
+                # Clean up European format
+                clean_amount = bedrag_str.replace('€', '').replace(',', '.').strip()
+                bedrag = float(clean_amount)
+                if bedrag <= 0:
+                    errors.append('Bedrag moet groter zijn dan 0')
+                else:
+                    mapped_data['bedrag'] = bedrag
+            except ValueError:
+                errors.append(f'Ongeldig bedrag: {bedrag_str}')
+        
+        # Validate dag
+        dag_str = data.get('dag', '').strip()
+        if not dag_str:
+            errors.append('Dag is verplicht')
+        else:
+            try:
+                dag = int(dag_str)
+                if dag < 1 or dag > 31:
+                    errors.append('Dag moet tussen 1 en 31 zijn')
+                else:
+                    mapped_data['dag'] = dag
+            except ValueError:
+                errors.append(f'Ongeldige dag: {dag_str}')
+        
+    except Exception as e:
+        errors.append(f'Verwerkingsfout: {str(e)}')
+    
+    status = 'error' if errors else 'valid'
+    return ImportPreviewItem(
+        row_number=row_number,
+        mapped_data=mapped_data,
+        validation_errors=errors,
+        import_status=status
+    )
+
 # Import Utility Functions
 def parse_csv_file(file_content: str, delimiter: str = ',') -> List[Dict[str, str]]:
     """Parse CSV content and return list of dictionaries"""
