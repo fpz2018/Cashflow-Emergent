@@ -524,9 +524,10 @@ def validate_bunq_row(row: Dict[str, str], row_number: int) -> ImportPreviewItem
                 
         if date_str:
             try:
-                # Try various date formats
+                # Try various date formats (including BUNQ format)
                 date_formats = [
-                    '%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%m/%d/%Y',
+                    '%d-%m-%Y',  # BUNQ format: 1-1-2025
+                    '%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y',
                     '%Y/%m/%d', '%d.%m.%Y', '%Y.%m.%d',
                     '%Y-%m-%d %H:%M:%S', '%d-%m-%Y %H:%M:%S'
                 ]
