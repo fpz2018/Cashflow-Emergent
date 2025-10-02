@@ -462,9 +462,15 @@ def validate_bunq_row(row: Dict[str, str], row_number: int) -> ImportPreviewItem
     mapped_data = {}
     
     # Common BUNQ CSV columns: Date, Amount, Counterparty, Description, Account
+    # Also try Dutch alternatives
     try:
-        # Parse date
-        date_str = row.get('Date', '').strip() or row.get('datum', '').strip()
+        # Parse date - try multiple column names and formats
+        date_str = ''
+        for date_col in ['Date', 'datum', 'Datum', 'date']:
+            if date_col in row and row[date_col]:
+                date_str = str(row[date_col]).strip()
+                break
+                
         if date_str:
             try:
                 mapped_data['date'] = datetime.strptime(date_str, '%Y-%m-%d').date().isoformat()
@@ -472,26 +478,48 @@ def validate_bunq_row(row: Dict[str, str], row_number: int) -> ImportPreviewItem
                 try:
                     mapped_data['date'] = datetime.strptime(date_str, '%d-%m-%Y').date().isoformat()
                 except ValueError:
-                    errors.append(f'Ongeldige datum format: {date_str}')
+                    try:
+                        mapped_data['date'] = datetime.strptime(date_str, '%d/%m/%Y').date().isoformat()
+                    except ValueError:
+                        errors.append(f'Ongeldige datum format: {date_str}')
         else:
-            errors.append('Datum is verplicht')
+            errors.append('Datum kolom niet gevonden of leeg')
             
-        # Parse amount
-        amount_str = row.get('Amount', '').strip() or row.get('bedrag', '').strip()
-        amount_str = amount_str.replace(',', '.')
+        # Parse amount - try multiple column names
+        amount_str = ''
+        for amount_col in ['Amount', 'bedrag', 'Bedrag', 'amount']:
+            if amount_col in row and row[amount_col]:
+                amount_str = str(row[amount_col]).strip().replace(',', '.')
+                break
+                
         if amount_str:
             try:
-                mapped_data['amount'] = abs(float(amount_str))  # Use absolute value
-                mapped_data['original_amount'] = float(amount_str)  # Keep original for reconciliation
+                original_amount = float(amount_str)
+                mapped_data['amount'] = abs(original_amount)  # Use absolute value
+                mapped_data['original_amount'] = original_amount  # Keep original for reconciliation
             except (ValueError, InvalidOperation):
                 errors.append(f'Ongeldig bedrag: {amount_str}')
         else:
-            errors.append('Bedrag is verplicht')
+            errors.append('Bedrag kolom niet gevonden of leeg')
             
-        # Other fields
-        mapped_data['counterparty'] = row.get('Counterparty', '').strip() or row.get('tegenpartij', '').strip()
-        mapped_data['description'] = row.get('Description', '').strip() or row.get('omschrijving', '').strip()
-        mapped_data['account_number'] = row.get('Account', '').strip() or row.get('rekening', '').strip()
+        # Other fields - safely get values
+        mapped_data['counterparty'] = ''
+        for counter_col in ['Counterparty', 'tegenpartij', 'Tegenpartij', 'counterparty']:
+            if counter_col in row and row[counter_col]:
+                mapped_data['counterparty'] = str(row[counter_col]).strip()
+                break
+                
+        mapped_data['description'] = ''
+        for desc_col in ['Description', 'omschrijving', 'Omschrijving', 'description']:
+            if desc_col in row and row[desc_col]:
+                mapped_data['description'] = str(row[desc_col]).strip()
+                break
+                
+        mapped_data['account_number'] = ''
+        for acc_col in ['Account', 'rekening', 'Rekening', 'account']:
+            if acc_col in row and row[acc_col]:
+                mapped_data['account_number'] = str(row[acc_col]).strip()
+                break
         
     except Exception as e:
         errors.append(f'Verwerkingsfout: {str(e)}')
