@@ -812,9 +812,9 @@ async def preview_import(
             file_name=file.filename,
             import_type=import_type,
             total_rows=len(rows),
-            valid_rows=valid_count,
-            error_rows=error_count,
-            preview_items=preview_items[:20],  # Return first 20 items for preview
+            valid_rows=total_valid_count,
+            error_rows=total_error_count,
+            preview_items=preview_items,  # Already limited to first 20
             column_mapping=column_mapping
         )
         
