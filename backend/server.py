@@ -1278,6 +1278,66 @@ async def match_bank_transaction(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error matching transactions: {str(e)}")
 
+@api_router.post("/bank-reconciliation/match-crediteur")
+async def match_bank_transaction_with_crediteur(
+    bank_transaction_id: str = Query(...),
+    crediteur_id: str = Query(...)
+):
+    """Match a bank transaction with a crediteur"""
+    try:
+        # Get bank transaction and crediteur details
+        bank_trans = await db.bank_transactions.find_one({"id": bank_transaction_id})
+        crediteur = await db.crediteuren.find_one({"id": crediteur_id})
+        
+        if not bank_trans or not crediteur:
+            raise HTTPException(status_code=404, detail="Bank transactie of crediteur niet gevonden")
+        
+        # Create expense transaction for the crediteur payment
+        expense_transaction = Transaction(
+            type="expense",
+            category="crediteur",
+            amount=crediteur['bedrag'],
+            description=f"Maandelijkse betaling {crediteur['crediteur']}",
+            date=bank_trans['date'] if isinstance(bank_trans['date'], str) else bank_trans['date'].isoformat(),
+            patient_name=crediteur['crediteur'],
+            invoice_number=f"CRED-{crediteur_id[:8]}",
+            notes=f"Automatisch gekoppeld aan bank transactie {bank_transaction_id[:8]}",
+            reconciled=True
+        )
+        
+        # Save expense transaction
+        expense_dict = prepare_for_mongo(expense_transaction.dict())
+        await db.transactions.insert_one(expense_dict)
+        
+        # Mark bank transaction as reconciled
+        await db.bank_transactions.update_one(
+            {"id": bank_transaction_id},
+            {"$set": {"reconciled": True}}
+        )
+        
+        # Create reconciliation record
+        bank_date_str = bank_trans.get('date', '')
+        reconciliation = BankReconciliation(
+            bank_transaction_id=bank_transaction_id,
+            bank_date=bank_date_str if isinstance(bank_date_str, str) else date.today(),
+            bank_amount=bank_trans.get('amount', 0),
+            bank_description=bank_trans.get('description', ''),
+            matched_transaction_id=expense_transaction.id,
+            reconciliation_status="matched_crediteur",
+            match_confidence=0.9
+        )
+        
+        reconciliation_dict = prepare_for_mongo(reconciliation.dict())
+        await db.reconciliations.insert_one(reconciliation_dict)
+        
+        return {
+            "message": "Bank transactie succesvol gekoppeld aan crediteur",
+            "created_expense_id": expense_transaction.id
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error matching with crediteur: {str(e)}")
+
 @api_router.get("/bank-reconciliation/suggestions/{bank_transaction_id}")
 async def get_reconciliation_suggestions(bank_transaction_id: str):
     """Get suggested matches for a bank transaction (transactions + crediteuren)"""
