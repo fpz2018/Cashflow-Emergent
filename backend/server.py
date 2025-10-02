@@ -345,8 +345,38 @@ async def get_expense_categories():
 def parse_csv_file(file_content: str, delimiter: str = ',') -> List[Dict[str, str]]:
     """Parse CSV content and return list of dictionaries"""
     try:
+        # Try different delimiters if the default doesn't work
+        delimiters = [delimiter, ';', '\t', '|']
+        
+        for delim in delimiters:
+            try:
+                csv_reader = csv.DictReader(io.StringIO(file_content), delimiter=delim)
+                rows = list(csv_reader)
+                
+                # Check if we got meaningful data (at least 2 columns with data)
+                if rows and len(rows[0].keys()) >= 2:
+                    # Filter out completely empty rows and None keys
+                    filtered_rows = []
+                    for row in rows:
+                        if any(value and str(value).strip() for value in row.values()):
+                            # Clean up the row - remove None keys and empty string keys
+                            clean_row = {
+                                k: v for k, v in row.items() 
+                                if k is not None and str(k).strip() != ''
+                            }
+                            if clean_row:
+                                filtered_rows.append(clean_row)
+                    
+                    if filtered_rows:
+                        return filtered_rows
+                        
+            except Exception:
+                continue
+                
+        # If all delimiters failed, try one more time with the original
         csv_reader = csv.DictReader(io.StringIO(file_content), delimiter=delimiter)
-        return [row for row in csv_reader]
+        return [row for row in csv_reader if row]
+        
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error parsing CSV: {str(e)}")
 
