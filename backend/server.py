@@ -487,8 +487,26 @@ def validate_crediteur_data(data: Dict[str, str], row_number: int) -> ImportPrev
             errors.append('Bedrag is verplicht')
         else:
             try:
-                # Clean up European format
-                clean_amount = bedrag_str.replace('€', '').replace(',', '.').strip()
+                # Clean up Euro format: "€ 12.500,00" or "€ 1.646,30"
+                clean_amount = bedrag_str.replace('€', '').replace('EUR', '').strip()
+                
+                # Handle European number format (comma as decimal separator, dot as thousands separator)
+                if ',' in clean_amount:
+                    # Split by comma to handle decimal separator
+                    parts = clean_amount.rsplit(',', 1)  # Split from right, max 1 split
+                    if len(parts) == 2 and len(parts[1]) <= 2:  # Likely decimal separator
+                        # Remove dots (thousands separators) from the main part
+                        main_part = parts[0].replace('.', '')
+                        clean_amount = main_part + '.' + parts[1]
+                else:
+                    # No comma, but might have dots as thousands separators
+                    # Only treat as thousands separator if there are 3+ digits after the last dot
+                    if '.' in clean_amount:
+                        dot_parts = clean_amount.split('.')
+                        if len(dot_parts) > 1 and len(dot_parts[-1]) == 3:
+                            # Likely thousands separator format like "12.500"
+                            clean_amount = clean_amount.replace('.', '')
+                    
                 bedrag = float(clean_amount)
                 if bedrag <= 0:
                     errors.append('Bedrag moet groter zijn dan 0')
