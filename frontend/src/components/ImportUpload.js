@@ -138,6 +138,39 @@ Voor BUNQ bestanden verwachten we kolommen zoals:
     }
   };
 
+  const handleDebugPreview = async () => {
+    if (!selectedFile) {
+      setError('Selecteer eerst een bestand');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // Debug mode - show detailed file inspection
+      const inspectFormData = new FormData();
+      inspectFormData.append('file', selectedFile);
+      
+      const inspectResponse = await axios.post(`${API}/import/inspect-columns`, inspectFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      console.log('DEBUG - File inspection:', inspectResponse.data);
+      
+      // Show debug info in alert for now
+      alert(`DEBUG INFO:\n\nFile: ${selectedFile.name}\nSize: ${formatFileSize(selectedFile.size)}\nType: ${importType}\n\nColumns found: ${JSON.stringify(inspectResponse.data.columns, null, 2)}\n\nFirst few rows: ${JSON.stringify(inspectResponse.data.preview, null, 2)}`);
+      
+    } catch (error) {
+      console.error('Debug preview error:', error);
+      setError(`Debug fout: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
