@@ -605,7 +605,8 @@ def validate_bunq_row(row: Dict[str, str], row_number: int) -> ImportPreviewItem
                 
         mapped_data['description'] = ''
         description_columns = [
-            'Description', 'omschrijving', 'Omschrijving', 'description',
+            'omschrijving',  # Exact BUNQ column name first
+            'Description', 'Omschrijving', 'description',
             'Transactieomschrijving', 'transactieomschrijving', 'Transaction Description', 'transaction_description',
             'Memo', 'memo', 'Note', 'note', 'Notes', 'notes',
             'Mededelingen', 'mededelingen', 'Message', 'message'
