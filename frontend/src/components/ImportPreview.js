@@ -75,7 +75,8 @@ const ImportPreview = ({ previewData, onComplete, onBack }) => {
     }
   };
 
-  const canProceed = previewData.valid_rows > 0;
+  const canProceed = previewData?.valid_rows > 0;
+  const previewItems = previewData?.preview_items || [];
 
   return (
     <div className="space-y-6 fade-in">
