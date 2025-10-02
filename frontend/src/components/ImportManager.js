@@ -7,6 +7,7 @@ import BankReconciliation from './BankReconciliation';
 const ImportManager = ({ onRefresh }) => {
   const [activeTab, setActiveTab] = useState('upload');
   const [previewData, setPreviewData] = useState(null);
+  const [importResult, setImportResult] = useState(null);
 
   const tabs = [
     { id: 'upload', label: 'Bestanden Uploaden', icon: 'upload' },
