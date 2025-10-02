@@ -137,7 +137,7 @@
 
 ## frontend:
   - task: "Bank reconciliation UI voor crediteur matching"
-    implemented: false
+    implemented: true
     working: false
     file: "/app/frontend/src/components/BankReconciliation.js"
     stuck_count: 0
@@ -147,6 +147,9 @@
         - working: false
           agent: "main"
           comment: "Huidige BankReconciliation component toont alleen transaction matches, moet worden uitgebreid om crediteur matches te tonen en koppeling mogelijk te maken"
+        - working: false
+          agent: "main"
+          comment: "Frontend code geïmplementeerd - handleMatchCrediteur functie toegevoegd, crediteur vs transactie onderscheid in UI, aparte knop voor crediteur matching. Echter navigatie naar Bank Reconciliation tab lijkt issues te hebben."
 
   - task: "Dashboard cashflow forecast visualization"
     implemented: false
