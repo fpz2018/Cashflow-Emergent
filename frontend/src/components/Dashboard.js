@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import TransactionForm from './TransactionForm';
 import TransactionList from './TransactionList';
 import CashflowCards from './CashflowCards';
+import VerwachteBetalingen from './VerwachteBetalingen';
 
 const Dashboard = ({ 
   cashflowSummary, 
