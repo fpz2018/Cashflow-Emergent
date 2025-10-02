@@ -1402,49 +1402,49 @@ async def get_reconciliation_suggestions(bank_transaction_id: str):
         crediteuren = await db.crediteuren.find({"actief": True}).to_list(20)
         
         for crediteur in crediteuren:
-                crediteur_amount = crediteur.get('bedrag', 0)
-                crediteur_naam = crediteur.get('crediteur', '').lower()
-                
-                # Match by amount
-                amount_match = False
-                if abs(bank_amount - crediteur_amount) < 5.0:
-                    amount_match = True
-                
-                # Match by name/description
-                name_match = False
-                if (crediteur_naam and 
-                    (crediteur_naam in bank_description or 
-                     crediteur_naam in bank_counterparty or
-                     any(word in bank_description for word in crediteur_naam.split() if len(word) > 3))):
-                    name_match = True
-                
-                # Calculate match score
-                score = 0
-                reasons = []
-                if amount_match and name_match:
-                    score = 90
-                    reasons = ["Exacte bedrag match", "Naam match in beschrijving"]
-                elif amount_match:
-                    score = 70
-                    reasons = ["Exacte bedrag match"]
-                elif name_match:
-                    score = 60
-                    reasons = ["Naam match in beschrijving"]
-                
-                if score > 0:
-                    suggestions.append({
-                        "id": crediteur['id'],
-                        "type": "expense",
-                        "category": "crediteur",
-                        "amount": crediteur_amount,
-                        "description": f"Maandelijkse betaling {crediteur_naam}",
-                        "patient_name": crediteur_naam,
-                        "invoice_number": f"Crediteur-{crediteur['dag']}e",
-                        "match_type": "crediteur",
-                        "match_score": score,
-                        "match_reason": ", ".join(reasons),
-                        "crediteur_dag": crediteur.get('dag', 1)
-                    })
+            crediteur_amount = crediteur.get('bedrag', 0)
+            crediteur_naam = crediteur.get('crediteur', '').lower()
+            
+            # Match by amount
+            amount_match = False
+            if abs(bank_amount - crediteur_amount) < 5.0:
+                amount_match = True
+            
+            # Match by name/description
+            name_match = False
+            if (crediteur_naam and 
+                (crediteur_naam in bank_description or 
+                 crediteur_naam in bank_counterparty or
+                 any(word in bank_description for word in crediteur_naam.split() if len(word) > 3))):
+                name_match = True
+            
+            # Calculate match score
+            score = 0
+            reasons = []
+            if amount_match and name_match:
+                score = 90
+                reasons = ["Exacte bedrag match", "Naam match in beschrijving"]
+            elif amount_match:
+                score = 70
+                reasons = ["Exacte bedrag match"]
+            elif name_match:
+                score = 60
+                reasons = ["Naam match in beschrijving"]
+            
+            if score > 0:
+                suggestions.append({
+                    "id": crediteur['id'],
+                    "type": "expense",
+                    "category": "crediteur",
+                    "amount": crediteur_amount,
+                    "description": f"Maandelijkse betaling {crediteur_naam}",
+                    "patient_name": crediteur_naam,
+                    "invoice_number": f"Crediteur-{crediteur['dag']}e",
+                    "match_type": "crediteur",
+                    "match_score": score,
+                    "match_reason": ", ".join(reasons),
+                    "crediteur_dag": crediteur.get('dag', 1)
+                })
         
         # Sort by match score
         suggestions.sort(key=lambda x: x.get("match_score", 0), reverse=True)
