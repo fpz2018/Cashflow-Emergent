@@ -213,7 +213,7 @@ const BankReconciliation = ({ onRefresh }) => {
             </h4>
             {selectedBankTransaction && (
               <span className="text-sm text-slate-500">
-                Voor {formatCurrency(selectedBankTransaction.amount)}
+                Voor {formatCurrency(selectedBankTransaction.amount)} - Transacties & Crediteuren
               </span>
             )}
           </div>
