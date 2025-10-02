@@ -129,7 +129,7 @@ const BankReconciliation = ({ onRefresh }) => {
         <div>
           <h3 className="text-xl font-semibold text-slate-900">Bank Reconciliatie</h3>
           <p className="text-slate-600">
-            Koppel bank transacties aan cashflow transacties
+            Koppel bank transacties aan cashflow transacties en crediteuren
           </p>
         </div>
         
