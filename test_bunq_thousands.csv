@@ -1,0 +1,6 @@
+datum;debiteur;omschrijving;bedrag
+1-1-2025;Test Duizendtal 1;Bedrag met duizendtal punt;1.311.03
+2-1-2025;Test Duizendtal 2;Bedrag met duizendtal komma;€ 2.500,75
+3-1-2025;Test Normaal;Normaal bedrag;€ 150,50
+4-1-2025;Test Groot;Groot bedrag;12.345.67
+5-1-2025;Test Euro;Euro met duizendtal;€ 10.000,00
