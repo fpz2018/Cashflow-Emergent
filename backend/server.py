@@ -1400,6 +1400,8 @@ async def get_reconciliation_suggestions(bank_transaction_id: str):
         # Find potential crediteur matches (always check for crediteuren)
         # Note: checking for all transactions since bank data format may vary
         crediteuren = await db.crediteuren.find({"actief": True}).to_list(20)
+        print(f"DEBUG: Found {len(crediteuren)} crediteuren for matching")
+        print(f"DEBUG: Bank amount: {bank_amount}, description: '{bank_description}', counterparty: '{bank_counterparty}'")
         
         for crediteur in crediteuren:
             crediteur_amount = crediteur.get('bedrag', 0)
