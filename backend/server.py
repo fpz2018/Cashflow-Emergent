@@ -1407,7 +1407,7 @@ async def get_reconciliation_suggestions(bank_transaction_id: str):
             
             # Match by amount
             amount_match = False
-            if abs(bank_amount - crediteur_amount) < 5.0:
+            if abs(bank_amount - crediteur_amount) < 20.0:
                 amount_match = True
             
             # Match by name/description
