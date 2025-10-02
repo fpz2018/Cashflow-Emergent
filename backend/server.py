@@ -1397,8 +1397,8 @@ async def get_reconciliation_suggestions(bank_transaction_id: str):
                             "match_reason": "Vergelijkbaar bedrag en datum"
                         })
         
-        # Find potential crediteur matches (for outgoing transactions)
-        if bank_original_amount < 0:  # Uitgaande transactie
+        # Find potential crediteur matches (always check for crediteuren)
+        # Note: checking for all transactions since bank data format may vary
             crediteuren = await db.crediteuren.find({"actief": True}).to_list(20)
             
             for crediteur in crediteuren:
