@@ -102,6 +102,25 @@ const BankReconciliation = ({ onRefresh }) => {
     }).format(amount);
   };
 
+  const formatCurrencyWithColor = (amount) => {
+    const isNegative = amount < 0;
+    const formatted = formatCurrency(amount);
+    
+    if (isNegative) {
+      return (
+        <span className="text-red-600 font-medium">
+          {formatted}
+        </span>
+      );
+    } else {
+      return (
+        <span className="text-green-600 font-medium">
+          {formatted}
+        </span>
+      );
+    }
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('nl-NL');
   };
