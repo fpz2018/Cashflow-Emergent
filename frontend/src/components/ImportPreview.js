@@ -228,11 +228,11 @@ const ImportPreview = ({ previewData, onComplete, onBack }) => {
           </table>
         </div>
 
-        {previewData.preview_items.length < previewData.total_rows && (
+        {previewItems.length < (previewData?.total_rows || 0) && (
           <div className="p-4 bg-blue-50 border-t border-blue-200 text-center text-sm text-blue-700">
-            <strong>ℹ️ Preview toont alleen eerste {previewData.preview_items.length} rijen</strong>
+            <strong>ℹ️ Preview toont alleen eerste {previewItems.length} rijen</strong>
             <br />
-            Bij import worden alle {previewData.total_rows} rijen verwerkt ({previewData.valid_rows} geldig, {previewData.error_rows} fouten)
+            Bij import worden alle {previewData?.total_rows || 0} rijen verwerkt ({previewData?.valid_rows || 0} geldig, {previewData?.error_rows || 0} fouten)
           </div>
         )}
       </div>
