@@ -345,8 +345,14 @@ async def get_expense_categories():
 def parse_csv_file(file_content: str, delimiter: str = ',') -> List[Dict[str, str]]:
     """Parse CSV content and return list of dictionaries"""
     try:
+        # Remove BOM if present
+        if file_content.startswith('\ufeff'):
+            file_content = file_content[1:]
+        elif file_content.startswith('\xef\xbb\xbf'):
+            file_content = file_content[3:]
+            
         # Try different delimiters if the default doesn't work
-        delimiters = [delimiter, ';', '\t', '|']
+        delimiters = [';', delimiter, '\t', '|', ',']  # Put ; first for BUNQ
         
         for delim in delimiters:
             try:
@@ -359,11 +365,14 @@ def parse_csv_file(file_content: str, delimiter: str = ',') -> List[Dict[str, st
                     filtered_rows = []
                     for row in rows:
                         if any(value and str(value).strip() for value in row.values()):
-                            # Clean up the row - remove None keys and empty string keys
-                            clean_row = {
-                                k: v for k, v in row.items() 
-                                if k is not None and str(k).strip() != ''
-                            }
+                            # Clean up the row - remove None keys, empty keys, and trim whitespace
+                            clean_row = {}
+                            for k, v in row.items():
+                                if k is not None and str(k).strip() != '':
+                                    clean_key = str(k).strip()  # Remove leading/trailing spaces
+                                    clean_value = str(v).strip() if v else ''
+                                    clean_row[clean_key] = clean_value
+                            
                             if clean_row:
                                 filtered_rows.append(clean_row)
                     
