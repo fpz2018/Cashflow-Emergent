@@ -176,7 +176,7 @@ const ImportPreview = ({ previewData, onComplete, onBack }) => {
               {previewItems.map((item, index) => (
                 <tr 
                   key={index}
-                  className={item.import_status === 'valid' ? 'bg-green-50' : 'bg-red-50'}
+                  className={item?.import_status === 'valid' ? 'bg-green-50' : 'bg-red-50'}
                   data-testid={`preview-row-${index}`}
                 >
                   <td className="px-4 py-3 whitespace-nowrap">
