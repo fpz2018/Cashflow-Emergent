@@ -565,8 +565,17 @@ def validate_bunq_row(row: Dict[str, str], row_number: int) -> ImportPreviewItem
         for amount_col in amount_columns:
             if amount_col in row and row[amount_col] and str(row[amount_col]).strip():
                 amount_str = str(row[amount_col]).strip()
-                # Remove currency symbols and clean up
-                amount_str = amount_str.replace('€', '').replace('EUR', '').replace(',', '.').strip()
+                # Clean up BUNQ format: "€ -89,75" or "€ 124,76"
+                clean_amount = amount_str.replace('€', '').replace('EUR', '').strip()
+                
+                # Handle European number format (comma as decimal separator)
+                # Only replace the last comma with dot (decimal separator)
+                if ',' in clean_amount:
+                    parts = clean_amount.rsplit(',', 1)  # Split from right, max 1 split
+                    if len(parts) == 2 and len(parts[1]) <= 2:  # Likely decimal separator
+                        clean_amount = parts[0].replace(',', '') + '.' + parts[1]
+                    
+                amount_str = clean_amount
                 found_amount_col = amount_col
                 break
                 
