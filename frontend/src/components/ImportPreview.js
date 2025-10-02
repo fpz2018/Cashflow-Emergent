@@ -173,7 +173,7 @@ const ImportPreview = ({ previewData, onComplete, onBack }) => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
-              {previewData.preview_items.map((item, index) => (
+              {previewItems.map((item, index) => (
                 <tr 
                   key={index}
                   className={item.import_status === 'valid' ? 'bg-green-50' : 'bg-red-50'}
