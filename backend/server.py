@@ -66,6 +66,8 @@ def parse_from_mongo(item):
     """Parse date/datetime strings from MongoDB back to Python objects"""
     if isinstance(item.get('date'), str):
         item['date'] = datetime.fromisoformat(item['date']).date()
+    if isinstance(item.get('bank_date'), str):
+        item['bank_date'] = datetime.fromisoformat(item['bank_date']).date()
     if isinstance(item.get('created_at'), str):
         item['created_at'] = datetime.fromisoformat(item['created_at'])
     return item
