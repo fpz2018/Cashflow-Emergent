@@ -101,3 +101,72 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+## user_problem_statement: "Uitbreiding van bank reconciliatie om ook crediteuren te matchen en toevoegen van dagelijkse cashflow prognose aan dashboard. Prioriteit: eerst bank reconciliatie uitbreiding."
+
+## backend:
+  - task: "Bank reconciliation endpoint voor crediteuren"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "Backend endpoints /api/bank-reconciliation/match-crediteur en /api/bank-reconciliation/suggestions bestaande al en zijn geïmplementeerd"
+
+  - task: "Daily cashflow forecast endpoint"
+    implemented: false
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Endpoint bestaat maar heeft nog placeholder implementatie"
+
+## frontend:
+  - task: "Bank reconciliation UI voor crediteur matching"
+    implemented: false
+    working: false
+    file: "/app/frontend/src/components/BankReconciliation.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "main"
+          comment: "Huidige BankReconciliation component toont alleen transaction matches, moet worden uitgebreid om crediteur matches te tonen en koppeling mogelijk te maken"
+
+  - task: "Dashboard cashflow forecast visualization"
+    implemented: false
+    working: "NA"
+    file: "/app/frontend/src/components/Dashboard.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Nog niet gestart, wacht op backend implementatie"
+
+## metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+## test_plan:
+  current_focus:
+    - "Bank reconciliation UI voor crediteur matching"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+## agent_communication:
+    - agent: "main"
+      message: "Start implementatie van crediteur matching in BankReconciliation component. Backend endpoints zijn al beschikbaar."
