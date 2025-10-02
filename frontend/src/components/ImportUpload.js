@@ -322,14 +322,14 @@ Voor BUNQ bestanden verwachten we kolommen zoals:
           <div>
             <h4 className="font-medium text-slate-800 mb-2">BUNQ Bank Export:</h4>
             <ul className="list-disc list-inside space-y-1">
-              <li>BUNQ CSV export in Engels of Nederlands</li>
-              <li>Wordt gebruikt voor bank reconciliatie</li>
-              <li><strong>Datum kolommen:</strong> Date, Datum, Transactiedatum, Boekingsdatum</li>
-              <li><strong>Bedrag kolommen:</strong> Amount, Bedrag, Transactiebedrag, Saldo mutatie</li>
-              <li><strong>Optioneel:</strong> Counterparty/Tegenpartij, Description/Omschrijving</li>
+              <li>BUNQ CSV transactieoverzicht export</li>
+              <li>Gebruikt voor bank reconciliatie en cashflow matching</li>
+              <li><strong>Verwachte kolommen:</strong> datum, debiteur, omschrijving, bedrag</li>
+              <li><strong>Datum format:</strong> 1-1-2025 (dag-maand-jaar)</li>
+              <li><strong>Bedrag format:</strong> € -89,75 of € 124,76 (met Euro symbool en komma)</li>
             </ul>
-            <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-700">
-              <strong>💡 Tip:</strong> Het systeem detecteert automatisch Nederlandse en Engelse kolomnamen
+            <div className="mt-2 p-2 bg-green-50 rounded text-xs text-green-700">
+              <strong>✅ Compatible:</strong> Gebruikt exacte BUNQ export format met puntkomma delimiter
             </div>
           </div>
         </div>
