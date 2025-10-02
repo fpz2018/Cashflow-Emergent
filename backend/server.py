@@ -1683,6 +1683,156 @@ async def get_verwachte_betalingen():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error calculating expected payments: {str(e)}")
 
+# Cashflow planning endpoints
+@api_router.get("/cashflow-forecast")
+async def get_cashflow_forecast(days: int = 30):
+    """Get daily cashflow forecast for the next N days"""
+    try:
+        forecast_days = []
+        start_date = date.today()
+        
+        # Get current bank balance (could be stored in settings, for now calculate from transactions)
+        # In a real app, you'd store the current bank balance
+        current_balance = 0.0  # Starting point - should be configurable
+        
+        # Get all verwachte betalingen
+        verwachte_betalingen = []
+        
+        # Declaratie betalingen (inkomsten)
+        transactions = await db.transactions.find({
+            "type": "income",
+            "category": "zorgverzekeraar", 
+            "reconciled": False
+        }).to_list(1000)
+        
+        verzekeraars = await db.verzekeraars.find({"actief": True}).to_list(1000)
+        verzekeraars_dict = {v['naam']: v['termijn'] for v in verzekeraars}
+        
+        for trans in transactions:
+            transaction_date = datetime.fromisoformat(trans['date']).date()
+            patient_name = trans.get('patient_name', '')
+            
+            # Find termijn
+            termijn = 30  # Default
+            for verzekeraar_naam, verzekeraar_termijn in verzekeraars_dict.items():
+                if verzekeraar_naam.lower() in patient_name.lower():
+                    termijn = verzekeraar_termijn
+                    break
+            
+            verwachte_datum = transaction_date + timedelta(days=termijn)
+            verwachte_betalingen.append({
+                'datum': verwachte_datum,
+                'bedrag': trans['amount'],
+                'type': 'inkomst',
+                'beschrijving': f"Declaratie {trans.get('invoice_number', '')}"
+            })
+        
+        # Crediteur betalingen (uitgaven)
+        crediteuren = await db.crediteuren.find({"actief": True}).to_list(1000)
+        for crediteur in crediteuren:
+            # Calculate next few months of payments
+            for month_offset in range(0, 3):  # Next 3 months
+                try:
+                    target_date = start_date.replace(day=1) + timedelta(days=32 * month_offset)
+                    target_date = target_date.replace(day=crediteur['dag'])
+                    
+                    if target_date >= start_date and target_date <= start_date + timedelta(days=days):
+                        verwachte_betalingen.append({
+                            'datum': target_date,
+                            'bedrag': -crediteur['bedrag'],  # Negative for expense
+                            'type': 'uitgave',
+                            'beschrijving': f"Betaling {crediteur['crediteur']}"
+                        })
+                except ValueError:
+                    # Skip invalid dates (like 31st in February)
+                    continue
+        
+        # Generate daily forecast
+        for day_offset in range(days):
+            forecast_date = start_date + timedelta(days=day_offset)
+            
+            # Calculate payments for this day
+            daily_inkomsten = sum(
+                p['bedrag'] for p in verwachte_betalingen 
+                if p['datum'] == forecast_date and p['bedrag'] > 0
+            )
+            daily_uitgaven = sum(
+                p['bedrag'] for p in verwachte_betalingen 
+                if p['datum'] == forecast_date and p['bedrag'] < 0
+            )
+            daily_net = daily_inkomsten + daily_uitgaven
+            
+            # Update running balance
+            current_balance += daily_net
+            
+            forecast_days.append({
+                'date': forecast_date.isoformat(),
+                'inkomsten': daily_inkomsten,
+                'uitgaven': abs(daily_uitgaven),
+                'net_cashflow': daily_net,
+                'verwachte_saldo': current_balance,
+                'payments': [
+                    p for p in verwachte_betalingen 
+                    if p['datum'] == forecast_date
+                ]
+            })
+        
+        return {
+            'start_date': start_date.isoformat(),
+            'forecast_days': forecast_days,
+            'total_expected_income': sum(p['bedrag'] for p in verwachte_betalingen if p['bedrag'] > 0),
+            'total_expected_expenses': sum(p['bedrag'] for p in verwachte_betalingen if p['bedrag'] < 0),
+            'net_expected': sum(p['bedrag'] for p in verwachte_betalingen)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error calculating cashflow forecast: {str(e)}")
+
+@api_router.get("/dashboard-summary")
+async def get_dashboard_summary():
+    """Get comprehensive dashboard summary with key metrics"""
+    try:
+        today = date.today()
+        
+        # Basic cashflow summary
+        cashflow_summary = await get_cashflow_summary()
+        
+        # Onbekende bank transacties
+        unmatched_bank = await db.bank_transactions.count_documents({"reconciled": False})
+        
+        # Verwachte betalingen vandaag en deze week
+        verwachte_betalingen = await get_verwachte_betalingen()
+        today_payments = [p for p in verwachte_betalingen if p.get('verwachte_datum') == today.isoformat()]
+        
+        week_end = today + timedelta(days=7)
+        week_payments = [
+            p for p in verwachte_betalingen 
+            if today.isoformat() <= p.get('verwachte_datum', '') <= week_end.isoformat()
+        ]
+        
+        # Overdue betalingen
+        overdue_payments = [
+            p for p in verwachte_betalingen
+            if p.get('verwachte_datum', '') < today.isoformat() and p.get('status') != 'betaald'
+        ]
+        
+        # Cashflow forecast voor komende week
+        forecast = await get_cashflow_forecast(7)
+        
+        return {
+            'cashflow_summary': cashflow_summary,
+            'verwachte_betalingen_vandaag': len(today_payments),
+            'verwachte_betalingen_week': len(week_payments),
+            'overdue_betalingen': len(overdue_payments),
+            'onbekende_bank_transacties': unmatched_bank,
+            'week_forecast': forecast['forecast_days'],
+            'total_verwachte_inkomsten': sum(p.get('bedrag', 0) for p in week_payments if p.get('bedrag', 0) > 0),
+            'total_verwachte_uitgaven': abs(sum(p.get('bedrag', 0) for p in week_payments if p.get('bedrag', 0) < 0))
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting dashboard summary: {str(e)}")
+
 # Legacy routes (keep for compatibility)
 @api_router.get("/")
 async def root():
