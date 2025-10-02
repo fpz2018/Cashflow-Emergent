@@ -250,11 +250,11 @@ const ImportPreview = ({ previewData, onComplete, onBack }) => {
           {canProceed ? (
             <div className="space-y-1">
               <div className="text-green-600 font-medium">
-                ✓ Klaar voor import: {previewData.valid_rows} geldige rijen
+                ✓ Klaar voor import: {previewData?.valid_rows || 0} geldige rijen
               </div>
-              {previewData.error_rows > 0 && (
+              {(previewData?.error_rows || 0) > 0 && (
                 <div className="text-amber-600">
-                  ⚠️ {previewData.error_rows} rijen worden overgeslagen (fouten)
+                  ⚠️ {previewData?.error_rows || 0} rijen worden overgeslagen (fouten)
                 </div>
               )}
             </div>
