@@ -1154,6 +1154,236 @@ async def get_reconciliation_suggestions(bank_transaction_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error finding suggestions: {str(e)}")
 
+# Copy-Paste Import Endpoints
+@api_router.post("/copy-paste-import/preview", response_model=CopyPasteImportResult)
+async def preview_copy_paste_import(request: CopyPasteImportRequest):
+    """Preview copy-paste import data"""
+    try:
+        if request.import_type == 'verzekeraars':
+            expected_columns = ['naam', 'termijn']
+            parsed_data = parse_copy_paste_data(request.data, expected_columns)
+            
+            preview_items = []
+            valid_count = 0
+            error_count = 0
+            
+            for i, row in enumerate(parsed_data, 1):
+                item = validate_verzekeraar_data(row, i)
+                preview_items.append(item.dict())
+                if item.import_status == 'valid':
+                    valid_count += 1
+                else:
+                    error_count += 1
+        
+        elif request.import_type == 'crediteuren':
+            expected_columns = ['crediteur', 'bedrag', 'dag']
+            parsed_data = parse_copy_paste_data(request.data, expected_columns)
+            
+            preview_items = []
+            valid_count = 0
+            error_count = 0
+            
+            for i, row in enumerate(parsed_data, 1):
+                item = validate_crediteur_data(row, i)
+                preview_items.append(item.dict())
+                if item.import_status == 'valid':
+                    valid_count += 1
+                else:
+                    error_count += 1
+        
+        else:
+            raise HTTPException(status_code=400, detail=f"Onbekend import type: {request.import_type}")
+        
+        return CopyPasteImportResult(
+            success=True,
+            imported_count=valid_count,
+            error_count=error_count,
+            errors=[],
+            preview_data=preview_items
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Preview fout: {str(e)}")
+
+@api_router.post("/copy-paste-import/execute", response_model=ImportResult)
+async def execute_copy_paste_import(request: CopyPasteImportRequest):
+    """Execute copy-paste import"""
+    try:
+        imported_count = 0
+        error_count = 0
+        errors = []
+        created_ids = []
+        
+        if request.import_type == 'verzekeraars':
+            expected_columns = ['naam', 'termijn']
+            parsed_data = parse_copy_paste_data(request.data, expected_columns)
+            
+            for i, row in enumerate(parsed_data, 1):
+                try:
+                    item = validate_verzekeraar_data(row, i)
+                    if item.import_status == 'valid':
+                        verzekeraar = Verzekeraar(**item.mapped_data)
+                        verzekeraar_dict = prepare_for_mongo(verzekeraar.dict())
+                        await db.verzekeraars.insert_one(verzekeraar_dict)
+                        imported_count += 1
+                        created_ids.append(verzekeraar.id)
+                    else:
+                        error_count += 1
+                        errors.extend([f"Rij {i}: {err}" for err in item.validation_errors])
+                except Exception as e:
+                    error_count += 1
+                    errors.append(f"Rij {i}: {str(e)}")
+        
+        elif request.import_type == 'crediteuren':
+            expected_columns = ['crediteur', 'bedrag', 'dag']
+            parsed_data = parse_copy_paste_data(request.data, expected_columns)
+            
+            for i, row in enumerate(parsed_data, 1):
+                try:
+                    item = validate_crediteur_data(row, i)
+                    if item.import_status == 'valid':
+                        crediteur = Crediteur(**item.mapped_data)
+                        crediteur_dict = prepare_for_mongo(crediteur.dict())
+                        await db.crediteuren.insert_one(crediteur_dict)
+                        imported_count += 1
+                        created_ids.append(crediteur.id)
+                    else:
+                        error_count += 1
+                        errors.extend([f"Rij {i}: {err}" for err in item.validation_errors])
+                except Exception as e:
+                    error_count += 1
+                    errors.append(f"Rij {i}: {str(e)}")
+        
+        return ImportResult(
+            success=True,
+            imported_count=imported_count,
+            error_count=error_count,
+            errors=errors[:10],  # Limit errors
+            created_transactions=created_ids
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Import fout: {str(e)}")
+
+# Verzekeraars endpoints
+@api_router.get("/verzekeraars", response_model=List[Verzekeraar])
+async def get_verzekeraars():
+    """Get all verzekeraars"""
+    try:
+        verzekeraars = await db.verzekeraars.find({"actief": True}).to_list(1000)
+        return [Verzekeraar(**parse_from_mongo(v)) for v in verzekeraars]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching verzekeraars: {str(e)}")
+
+@api_router.post("/verzekeraars", response_model=Verzekeraar)
+async def create_verzekeraar(verzekeraar: VerzekeraarCreate):
+    """Create a new verzekeraar"""
+    try:
+        verzekeraar_obj = Verzekeraar(**verzekeraar.dict())
+        mongo_dict = prepare_for_mongo(verzekeraar_obj.dict())
+        await db.verzekeraars.insert_one(mongo_dict)
+        return verzekeraar_obj
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating verzekeraar: {str(e)}")
+
+# Crediteuren endpoints  
+@api_router.get("/crediteuren", response_model=List[Crediteur])
+async def get_crediteuren():
+    """Get all crediteuren"""
+    try:
+        crediteuren = await db.crediteuren.find({"actief": True}).to_list(1000)
+        return [Crediteur(**parse_from_mongo(c)) for c in crediteuren]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching crediteuren: {str(e)}")
+
+@api_router.post("/crediteuren", response_model=Crediteur)  
+async def create_crediteur(crediteur: CrediteurCreate):
+    """Create a new crediteur"""
+    try:
+        crediteur_obj = Crediteur(**crediteur.dict())
+        mongo_dict = prepare_for_mongo(crediteur_obj.dict())
+        await db.crediteuren.insert_one(mongo_dict)
+        return crediteur_obj
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating crediteur: {str(e)}")
+
+# Verwachte betalingen endpoint
+@api_router.get("/verwachte-betalingen")
+async def get_verwachte_betalingen():
+    """Calculate expected payments based on transactions and crediteuren"""
+    try:
+        verwachte_betalingen = []
+        
+        # Get declaratie transactions that are not reconciled
+        transactions = await db.transactions.find({
+            "type": "income",
+            "category": "zorgverzekeraar",
+            "reconciled": False
+        }).to_list(1000)
+        
+        # Get verzekeraars for payment terms
+        verzekeraars = await db.verzekeraars.find({"actief": True}).to_list(1000)
+        verzekeraars_dict = {v['naam']: v['termijn'] for v in verzekeraars}
+        
+        # Calculate expected payments for declaraties
+        for trans in transactions:
+            transaction_date = datetime.fromisoformat(trans['date'])
+            patient_name = trans.get('patient_name', '')
+            
+            # Try to match verzekeraar name
+            termijn = 30  # Default termijn
+            for verzekeraar_naam, verzekeraar_termijn in verzekeraars_dict.items():
+                if verzekeraar_naam.lower() in patient_name.lower():
+                    termijn = verzekeraar_termijn
+                    break
+            
+            verwachte_datum = transaction_date.date() + timedelta(days=termijn)
+            
+            verwachte_betaling = {
+                'id': str(uuid.uuid4()),
+                'transaction_id': trans['id'],
+                'type': 'declaratie',
+                'beschrijving': f"Declaratie {trans.get('invoice_number', '')} - {patient_name}",
+                'bedrag': trans['amount'],
+                'verwachte_datum': verwachte_datum.isoformat(),
+                'status': 'open' if verwachte_datum >= date.today() else 'overdue'
+            }
+            verwachte_betalingen.append(verwachte_betaling)
+        
+        # Add crediteur payments for current month
+        crediteuren = await db.crediteuren.find({"actief": True}).to_list(1000)
+        current_month = date.today().replace(day=1)
+        
+        for crediteur in crediteuren:
+            try:
+                betalings_datum = current_month.replace(day=crediteur['dag'])
+                if betalings_datum < date.today():
+                    # Next month if day has passed
+                    next_month = current_month + timedelta(days=32)
+                    betalings_datum = next_month.replace(day=crediteur['dag'])
+                
+                verwachte_betaling = {
+                    'id': str(uuid.uuid4()),
+                    'crediteur_id': crediteur['id'],
+                    'type': 'crediteur',
+                    'beschrijving': f"Betaling {crediteur['crediteur']}",
+                    'bedrag': -crediteur['bedrag'],  # Negative for expense
+                    'verwachte_datum': betalings_datum.isoformat(),
+                    'status': 'open'
+                }
+                verwachte_betalingen.append(verwachte_betaling)
+            except ValueError:
+                # Skip invalid days (like 31st in February)
+                continue
+        
+        # Sort by date
+        verwachte_betalingen.sort(key=lambda x: x['verwachte_datum'])
+        
+        return verwachte_betalingen[:50]  # Limit to 50 items
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error calculating expected payments: {str(e)}")
+
 # Legacy routes (keep for compatibility)
 @api_router.get("/")
 async def root():
