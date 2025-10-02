@@ -1399,9 +1399,9 @@ async def get_reconciliation_suggestions(bank_transaction_id: str):
         
         # Find potential crediteur matches (always check for crediteuren)
         # Note: checking for all transactions since bank data format may vary
-            crediteuren = await db.crediteuren.find({"actief": True}).to_list(20)
-            
-            for crediteur in crediteuren:
+        crediteuren = await db.crediteuren.find({"actief": True}).to_list(20)
+        
+        for crediteur in crediteuren:
                 crediteur_amount = crediteur.get('bedrag', 0)
                 crediteur_naam = crediteur.get('crediteur', '').lower()
                 
