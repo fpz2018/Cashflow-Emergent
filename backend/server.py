@@ -549,10 +549,12 @@ def validate_bunq_row(row: Dict[str, str], row_number: int) -> ImportPreviewItem
         else:
             errors.append(f'Datum kolom niet gevonden. Beschikbare kolommen: {", ".join(available_columns)}')
             
-        # Parse amount - try extensive list of possible column names
+        # Parse amount - try extensive list of possible column names (including exact BUNQ format)
         amount_str = ''
         amount_columns = [
-            'Amount', 'bedrag', 'Bedrag', 'amount', 'AMOUNT',
+            'bedrag',  # Exact BUNQ column name first
+            ' bedrag',  # With leading space (as seen in the error)
+            'Amount', 'Bedrag', 'amount', 'AMOUNT',
             'Transactiebedrag', 'transactiebedrag', 'Transaction Amount', 'transaction_amount',
             'Saldo mutatie', 'saldo_mutatie', 'Balance Change', 'balance_change',
             'Waarde', 'waarde', 'Value', 'value', 'EUR', 'eur',
