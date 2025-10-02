@@ -101,17 +101,17 @@ const ImportPreview = ({ previewData, onComplete, onBack }) => {
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="modern-card text-center">
-          <div className="text-2xl font-bold text-slate-900">{previewData.total_rows}</div>
+          <div className="text-2xl font-bold text-slate-900">{previewData?.total_rows || 0}</div>
           <div className="text-sm text-slate-600">Totaal Rijen</div>
         </div>
         
         <div className="modern-card text-center">
-          <div className="text-2xl font-bold text-green-600">{previewData.valid_rows}</div>
+          <div className="text-2xl font-bold text-green-600">{previewData?.valid_rows || 0}</div>
           <div className="text-sm text-slate-600">Geldige Rijen</div>
         </div>
         
         <div className="modern-card text-center">
-          <div className="text-2xl font-bold text-red-600">{previewData.error_rows}</div>
+          <div className="text-2xl font-bold text-red-600">{previewData?.error_rows || 0}</div>
           <div className="text-sm text-slate-600">Fout Rijen</div>
         </div>
       </div>
