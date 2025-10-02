@@ -80,13 +80,22 @@ const ImportManager = ({ onRefresh }) => {
       <div className="mt-6">
         {activeTab === 'upload' && (
           <div className="space-y-6">
-            {!previewData ? (
+            {!previewData && !importResult && (
               <ImportUpload onPreviewReady={setPreviewData} />
-            ) : (
+            )}
+            
+            {previewData && !importResult && (
               <ImportPreview 
                 previewData={previewData} 
                 onComplete={handlePreviewComplete}
                 onBack={() => setPreviewData(null)}
+              />
+            )}
+            
+            {importResult && (
+              <ImportResult 
+                result={importResult}
+                onBack={handleBackToUpload}
               />
             )}
           </div>
