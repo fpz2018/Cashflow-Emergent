@@ -1431,6 +1431,11 @@ async def get_reconciliation_suggestions(bank_transaction_id: str):
                 score = 60
                 reasons = ["Naam match in beschrijving"]
             
+            # Also add crediteur suggestions with just amount match (lower score)
+            if score == 0 and amount_match:
+                score = 50
+                reasons = ["Bedrag match"]
+            
             if score > 0:
                 suggestions.append({
                     "id": crediteur['id'],
