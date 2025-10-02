@@ -8,6 +8,15 @@ const ImportPreview = ({ previewData, onComplete, onBack }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Safety check for previewData
+  if (!previewData) {
+    return (
+      <div className="flex items-center justify-center min-h-64">
+        <div className="text-slate-500">Geen preview data beschikbaar</div>
+      </div>
+    );
+  }
+
   const getImportTypeLabel = (type) => {
     const labels = {
       epd_declaraties: 'EPD Declaraties',
