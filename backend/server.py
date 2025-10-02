@@ -554,7 +554,11 @@ async def preview_import(
             elif import_type == 'epd_particulier':
                 column_mapping = {'factuur': 'Factuur Nummer', 'datum': 'Datum', 'debiteur': 'Debiteur', 'bedrag': 'Bedrag'}
             elif import_type == 'bank_bunq':
-                column_mapping = {key: key for key in rows[0].keys()}
+                # Filter out None keys and values for BUNQ import
+                column_mapping = {
+                    key: key for key in rows[0].keys() 
+                    if key is not None and key.strip() != ''
+                }
         
         return ImportPreview(
             file_name=file.filename,
