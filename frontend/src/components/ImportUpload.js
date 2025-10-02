@@ -425,10 +425,10 @@ ${JSON.stringify(debugInfo.sample_raw_rows, null, 2)}`;
               <li>Gebruikt voor bank reconciliatie en cashflow matching</li>
               <li><strong>Verwachte kolommen:</strong> datum, debiteur, omschrijving, bedrag</li>
               <li><strong>Datum format:</strong> 1-1-2025 (dag-maand-jaar)</li>
-              <li><strong>Bedrag format:</strong> € -89,75 of € 124,76 (met Euro symbool en komma)</li>
+              <li><strong>Bedrag formats:</strong> € 150,50, € 2.500,75, 1.311.03, € 10.000,00</li>
             </ul>
             <div className="mt-2 p-2 bg-green-50 rounded text-xs text-green-700">
-              <strong>✅ Compatible:</strong> Gebruikt exacte BUNQ export format met puntkomma delimiter
+              <strong>✅ Compatible:</strong> Ondersteunt alle BUNQ bedrag formaten inclusief duizendtallen
             </div>
           </div>
         </div>
