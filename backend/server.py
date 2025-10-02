@@ -1229,7 +1229,7 @@ async def execute_import(
 async def get_unmatched_bank_transactions():
     """Get unmatched bank transactions for reconciliation"""
     try:
-        bank_transactions = await db.bank_transactions.find({"reconciled": False}).to_list(1000)
+        bank_transactions = await db.bank_transactions.find({"reconciled": False}).sort([("date", -1)]).to_list(1000)
         return [BankTransaction(**parse_from_mongo(bt)) for bt in bank_transactions]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching bank transactions: {str(e)}")
