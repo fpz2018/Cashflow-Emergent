@@ -307,12 +307,35 @@ Voor BUNQ bestanden verwachten we kolommen zoals:
         )}
 
         {selectedFile && (
-          <div className="flex justify-end mt-6">
+          <div className="flex justify-end gap-3 mt-6">
+            <button
+              onClick={handleDebugPreview}
+              disabled={loading || !selectedFile}
+              className={`px-4 py-2 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all btn-animation ${
+                loading || !selectedFile ? 'opacity-70 cursor-not-allowed' : 'hover:from-orange-700 hover:to-red-700'
+              }`}
+              data-testid="debug-preview-button"
+            >
+              {loading ? (
+                <>
+                  <div className="spinner w-4 h-4 mr-2 inline-block"></div>
+                  Debug...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+                  </svg>
+                  Debug Info
+                </>
+              )}
+            </button>
+            
             <button
               onClick={handlePreview}
-              disabled={loading}
+              disabled={loading || !selectedFile}
               className={`px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all btn-animation ${
-                loading ? 'opacity-70 cursor-not-allowed' : 'hover:from-blue-700 hover:to-indigo-700'
+                loading || !selectedFile ? 'opacity-70 cursor-not-allowed' : 'hover:from-blue-700 hover:to-indigo-700'
               }`}
               data-testid="preview-button"
             >
