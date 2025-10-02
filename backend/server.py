@@ -1029,6 +1029,13 @@ async def preview_import(
                     if key is not None and key.strip() != ''
                 }
         
+        # Collect all errors for reporting
+        all_errors = []
+        for item in all_validation_results:
+            if item.import_status == 'error':
+                for error in item.validation_errors:
+                    all_errors.append(f"Rij {item.row_number}: {error}")
+
         return ImportPreview(
             file_name=file.filename,
             import_type=import_type,
@@ -1036,7 +1043,8 @@ async def preview_import(
             valid_rows=total_valid_count,
             error_rows=total_error_count,
             preview_items=preview_items,  # Already limited to first 20
-            column_mapping=column_mapping
+            column_mapping=column_mapping,
+            all_errors=all_errors[:50]  # Limit to first 50 errors for display
         )
         
     except Exception as e:
