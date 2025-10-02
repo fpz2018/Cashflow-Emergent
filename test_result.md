@@ -122,6 +122,9 @@
         - working: true
           agent: "testing"
           comment: "COMPREHENSIVE TESTING COMPLETED - All bank reconciliation endpoints working correctly: ✅ /api/bank-reconciliation/unmatched returns 1000+ unmatched transactions ✅ /api/bank-reconciliation/suggestions/{id} returns both transaction and crediteur suggestions ✅ /api/bank-reconciliation/match-crediteur successfully matches bank transactions with crediteuren and creates expense transactions ✅ /api/crediteuren returns 25+ available crediteuren ✅ /api/transactions?reconciled=false filters correctly ✅ Response formats are correct and consistent ✅ Direct crediteur matching test successful - created expense transaction and marked bank transaction as reconciled ✅ Error handling works appropriately (500 errors for invalid IDs are acceptable) ✅ Backend ready for frontend integration"
+        - working: true
+          agent: "testing"
+          comment: "CREDITEUR SUGGESTIONS FIX VERIFIED ✅ Main agent's fix is working correctly - /api/bank-reconciliation/suggestions/{id} now returns both match_type: 'transaction' AND match_type: 'crediteur' suggestions ✅ Tested 4 different bank transactions, found crediteur suggestions in 25% of cases (1 out of 4) ✅ Crediteur suggestions contain all required fields: crediteur_dag, match_reason, match_score, patient_name, amount ✅ Example working case: PHYSITRACK transaction (€89.75) returned 2 crediteur suggestions with proper scoring (70 for amount match, 60 for name match) ✅ /api/bank-reconciliation/match-crediteur endpoint successfully creates expense transactions and marks bank transactions as reconciled ✅ Backend crediteur matching logic is now complete and functional - no longer limited to negative amounts only"
 
   - task: "Daily cashflow forecast endpoint"
     implemented: false
