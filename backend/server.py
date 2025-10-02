@@ -654,9 +654,22 @@ async def execute_import(
         raise HTTPException(status_code=400, detail="Alleen CSV bestanden zijn toegestaan")
     
     try:
-        # Read and parse file
+        # Read and parse file with proper encoding detection
         content = await file.read()
-        content_str = content.decode('utf-8')
+        
+        # Try different encodings
+        encodings = ['utf-8', 'utf-8-sig', 'iso-8859-1', 'cp1252']
+        content_str = None
+        
+        for encoding in encodings:
+            try:
+                content_str = content.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+                
+        if content_str is None:
+            raise HTTPException(status_code=400, detail="Kan bestand encoding niet detecteren")
         rows = parse_csv_file(content_str)
         
         imported_count = 0
