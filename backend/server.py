@@ -406,13 +406,28 @@ def parse_copy_paste_data(data: str, expected_columns: List[str]) -> List[Dict[s
                 if delimiter == '  ':  # Multiple spaces
                     parts = [p.strip() for p in line.split() if p.strip()]
                 else:
-                    parts = [p.strip() for p in line.split(delimiter) if p.strip()]
+                    parts = [p.strip() for p in line.split(delimiter)]
                 
-                if len(parts) == len(expected_columns):
-                    row_dict = {expected_columns[j]: parts[j] for j in range(len(parts))}
+                # Filter out empty parts but keep parts that might be intentionally empty (like "-")
+                filtered_parts = []
+                for part in parts:
+                    if part.strip() or part == '-':  # Keep non-empty parts or explicit dashes
+                        filtered_parts.append(part.strip() if part.strip() else part)
+                
+                if len(filtered_parts) == len(expected_columns):
+                    row_dict = {expected_columns[j]: filtered_parts[j] for j in range(len(filtered_parts))}
                     parsed_data.append(row_dict)
-                elif len(parts) > 0:  # Skip empty lines, but report mismatched columns
-                    continue
+                elif len(filtered_parts) > len(expected_columns):
+                    # If we have more parts than expected, try to combine some (useful for names with spaces)
+                    if len(expected_columns) >= 2:
+                        # Combine extra parts into the first column (usually name)
+                        combined_first = ' '.join(filtered_parts[:-(len(expected_columns)-1)])
+                        remaining_parts = filtered_parts[-(len(expected_columns)-1):]
+                        final_parts = [combined_first] + remaining_parts
+                        
+                        if len(final_parts) == len(expected_columns):
+                            row_dict = {expected_columns[j]: final_parts[j] for j in range(len(final_parts))}
+                            parsed_data.append(row_dict)
             
             if len(parsed_data) > 0:
                 return parsed_data
@@ -420,12 +435,19 @@ def parse_copy_paste_data(data: str, expected_columns: List[str]) -> List[Dict[s
         except Exception:
             continue
     
-    # If no delimiter worked, treat as space-separated
+    # If no delimiter worked, treat as space-separated with smart combination
     parsed_data = []
     for line in lines:
-        parts = line.split()
+        parts = [p for p in line.split() if p]
         if len(parts) >= len(expected_columns):
-            row_dict = {expected_columns[j]: parts[j] for j in range(len(expected_columns))}
+            if len(parts) == len(expected_columns):
+                row_dict = {expected_columns[j]: parts[j] for j in range(len(expected_columns))}
+            else:
+                # Combine extra parts into first column
+                combined_first = ' '.join(parts[:-(len(expected_columns)-1)])
+                remaining_parts = parts[-(len(expected_columns)-1):]
+                final_parts = [combined_first] + remaining_parts
+                row_dict = {expected_columns[j]: final_parts[j] for j in range(len(expected_columns))}
             parsed_data.append(row_dict)
     
     return parsed_data
