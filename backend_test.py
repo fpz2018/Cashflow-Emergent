@@ -765,6 +765,7 @@ def main():
         ("Import Execute", tester.test_import_execute_endpoints),
         ("Crediteuren Endpoint", tester.test_crediteuren_endpoint),
         ("Bank Reconciliation", tester.test_bank_reconciliation_endpoints),
+        ("Crediteur Suggestions Fix", tester.test_crediteur_suggestions_fix),
         ("Delete Transaction", tester.test_delete_transaction),
         ("Error Handling", tester.test_error_handling)
     ]
