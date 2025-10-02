@@ -238,9 +238,16 @@ const ImportPreview = ({ previewData, onComplete, onBack }) => {
       <div className="flex justify-between items-center pt-6 border-t border-slate-200">
         <div className="text-sm text-slate-600">
           {canProceed ? (
-            <span className="text-green-600">
-              ✓ {previewData.valid_rows} rijen kunnen worden geïmporteerd
-            </span>
+            <div className="space-y-1">
+              <div className="text-green-600 font-medium">
+                ✓ Klaar voor import: {previewData.valid_rows} geldige rijen
+              </div>
+              {previewData.error_rows > 0 && (
+                <div className="text-amber-600">
+                  ⚠️ {previewData.error_rows} rijen worden overgeslagen (fouten)
+                </div>
+              )}
+            </div>
           ) : (
             <span className="text-red-600">
               ✗ Geen geldige rijen om te importeren
