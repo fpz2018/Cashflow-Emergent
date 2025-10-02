@@ -73,6 +73,28 @@ const BankReconciliation = ({ onRefresh }) => {
     }
   };
 
+  const handleMatchCrediteur = async (bankTransactionId, crediteurId) => {
+    try {
+      await axios.post(`${API}/bank-reconciliation/match-crediteur`, null, {
+        params: {
+          bank_transaction_id: bankTransactionId,
+          crediteur_id: crediteurId
+        }
+      });
+
+      // Refresh data
+      await fetchUnmatchedTransactions();
+      setSelectedBankTransaction(null);
+      setSuggestions([]);
+      
+      onRefresh && onRefresh();
+
+    } catch (error) {
+      console.error('Error matching with crediteur:', error);
+      setError('Fout bij koppelen aan crediteur');
+    }
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('nl-NL', {
       style: 'currency',
