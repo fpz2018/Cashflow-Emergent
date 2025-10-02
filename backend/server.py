@@ -622,6 +622,50 @@ def validate_bunq_row(row: Dict[str, str], row_number: int) -> ImportPreviewItem
     )
 
 # Import Endpoints
+@api_router.post("/import/inspect-columns")
+async def inspect_csv_columns(file: UploadFile = File(...)):
+    """Inspect CSV file columns for debugging"""
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Alleen CSV bestanden zijn toegestaan")
+    
+    try:
+        # Read and parse file with proper encoding detection
+        content = await file.read()
+        
+        # Try different encodings
+        encodings = ['utf-8', 'utf-8-sig', 'iso-8859-1', 'cp1252']
+        content_str = None
+        
+        for encoding in encodings:
+            try:
+                content_str = content.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+                
+        if content_str is None:
+            raise HTTPException(status_code=400, detail="Kan bestand encoding niet detecteren")
+        
+        # Parse CSV and get first few rows
+        rows = parse_csv_file(content_str)
+        
+        if not rows:
+            return {"columns": [], "sample_rows": [], "row_count": 0}
+            
+        # Get column info
+        columns = list(rows[0].keys())
+        sample_rows = rows[:3]  # First 3 rows as sample
+        
+        return {
+            "columns": columns,
+            "sample_rows": sample_rows,
+            "row_count": len(rows),
+            "filename": file.filename
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Fout bij inspecteren bestand: {str(e)}")
+
 @api_router.post("/import/preview")
 async def preview_import(
     file: UploadFile = File(...),
