@@ -30,9 +30,15 @@ const ImportManager = ({ onRefresh }) => {
     return icons[iconName];
   };
 
-  const handlePreviewComplete = (data) => {
-    setPreviewData(data);
+  const handlePreviewComplete = (result) => {
+    setImportResult(result);
+    setPreviewData(null);
     onRefresh && onRefresh();
+  };
+
+  const handleBackToUpload = () => {
+    setPreviewData(null);
+    setImportResult(null);
   };
 
   return (
