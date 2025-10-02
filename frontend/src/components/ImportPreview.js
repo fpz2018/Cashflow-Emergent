@@ -187,10 +187,10 @@ const ImportPreview = ({ previewData, onComplete, onBack }) => {
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900">
                     {item.row_number}
                   </td>
-                  {previewData.import_type !== 'bank_bunq' && (
+                  {previewData?.import_type !== 'bank_bunq' && (
                     <>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900">
-                        {item.mapped_data.invoice_number || '-'}
+                        {item?.mapped_data?.invoice_number || '-'}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900">
                         {item.mapped_data.date ? formatDate(item.mapped_data.date) : '-'}
