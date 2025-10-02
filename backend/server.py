@@ -1409,8 +1409,10 @@ async def get_reconciliation_suggestions(bank_transaction_id: str):
             
             # Match by amount
             amount_match = False
-            if abs(bank_amount - crediteur_amount) < 20.0:
+            amount_diff = abs(bank_amount - crediteur_amount)
+            if amount_diff < 20.0:
                 amount_match = True
+                print(f"DEBUG: Amount match for {crediteur_naam}: {bank_amount} vs {crediteur_amount} (diff: {amount_diff})")
             
             # Match by name/description
             name_match = False
@@ -1419,6 +1421,7 @@ async def get_reconciliation_suggestions(bank_transaction_id: str):
                  crediteur_naam in bank_counterparty or
                  any(word in bank_description for word in crediteur_naam.split() if len(word) > 3))):
                 name_match = True
+                print(f"DEBUG: Name match for {crediteur_naam}")
             
             # Calculate match score
             score = 0
