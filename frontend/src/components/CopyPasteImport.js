@@ -27,11 +27,11 @@ Zilveren Kruis	21`
       label: 'Crediteuren',
       description: 'Importeer crediteuren met vaste betalingen',
       columns: 'crediteur, bedrag, dag',
-      example: 'Huur Praktijk\t1200\t1\nElektra\t150\t15\nInternet\t50\t10',
+      example: 'Huur Praktijk\t€ 1.200,00\t1\nNetto Salarissen\t€ 12.500,00\t25\nElektra\t150,50\t15',
       placeholder: `Plak hier uw crediteuren data:
-Huur Praktijk	1200	1
-Elektra	150	15
-Internet	50	10`
+Huur Praktijk	€ 1.200,00	1
+Netto Salarissen	€ 12.500,00	25
+Elektra	150,50	15`
     }
   };
 
