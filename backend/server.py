@@ -400,24 +400,42 @@ def validate_epd_declaratie_row(row: Dict[str, str], row_number: int) -> ImportP
         if not mapped_data['invoice_number']:
             errors.append('Factuur nummer is verplicht')
             
-        # Parse date
+        # Parse date - support Dutch format like "8-1-2025"
         date_str = row.get('datum', '').strip()
         if date_str:
             try:
-                mapped_data['date'] = datetime.strptime(date_str, '%Y-%m-%d').date().isoformat()
+                # Try Dutch format first (d-m-yyyy)
+                mapped_data['date'] = datetime.strptime(date_str, '%d-%m-%Y').date().isoformat()
             except ValueError:
                 try:
-                    mapped_data['date'] = datetime.strptime(date_str, '%d-%m-%Y').date().isoformat()
+                    # Try ISO format
+                    mapped_data['date'] = datetime.strptime(date_str, '%Y-%m-%d').date().isoformat()
                 except ValueError:
-                    errors.append(f'Ongeldige datum format: {date_str}')
+                    try:
+                        # Try other common formats
+                        mapped_data['date'] = datetime.strptime(date_str, '%d/%m/%Y').date().isoformat()
+                    except ValueError:
+                        errors.append(f'Ongeldige datum format: {date_str}')
         else:
             errors.append('Datum is verplicht')
             
-        # Parse amount
-        amount_str = row.get('bedrag', '').strip().replace(',', '.')
+        # Parse amount - handle Euro format like "€ 1.646,30"
+        amount_str = row.get('bedrag', '').strip()
         if amount_str:
             try:
-                mapped_data['amount'] = float(amount_str)
+                # Clean up Euro format: "€ 1.646,30"
+                clean_amount = amount_str.replace('€', '').replace('EUR', '').strip()
+                
+                # Handle European number format (comma as decimal separator, dot as thousands separator)
+                if ',' in clean_amount:
+                    # Split by comma to handle decimal separator
+                    parts = clean_amount.rsplit(',', 1)  # Split from right, max 1 split
+                    if len(parts) == 2 and len(parts[1]) <= 2:  # Likely decimal separator
+                        # Remove dots (thousands separators) from the main part
+                        main_part = parts[0].replace('.', '')
+                        clean_amount = main_part + '.' + parts[1]
+                    
+                mapped_data['amount'] = float(clean_amount)
                 if mapped_data['amount'] <= 0:
                     errors.append('Bedrag moet groter zijn dan 0')
             except (ValueError, InvalidOperation):
@@ -425,8 +443,18 @@ def validate_epd_declaratie_row(row: Dict[str, str], row_number: int) -> ImportP
         else:
             errors.append('Bedrag is verplicht')
             
-        # Verzekeraar
-        mapped_data['patient_name'] = row.get('verzekeraar', '').strip()
+        # Verzekeraar - extract clean name from format like "202200008321-Centrale Verwerkingseenheid CZ: CZ, Nationale-Nederlanden en OHRA"
+        verzekeraar_raw = row.get('verzekeraar', '').strip()
+        if verzekeraar_raw:
+            # Try to extract the clean verzekeraar name after the dash
+            if '-' in verzekeraar_raw:
+                verzekeraar_clean = verzekeraar_raw.split('-', 1)[1].strip()
+            else:
+                verzekeraar_clean = verzekeraar_raw
+            mapped_data['patient_name'] = verzekeraar_clean
+        else:
+            mapped_data['patient_name'] = ''
+            
         mapped_data['description'] = f"Declaratie {mapped_data.get('invoice_number', '')} - {mapped_data.get('patient_name', '')}"
         mapped_data['type'] = 'income'
         mapped_data['category'] = 'zorgverzekeraar'
