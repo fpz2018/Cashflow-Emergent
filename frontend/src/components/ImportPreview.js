@@ -121,7 +121,7 @@ const ImportPreview = ({ previewData, onComplete, onBack }) => {
         <div className="modern-card-header">
           <h4 className="text-lg font-semibold text-slate-900">Data Voorbeeld</h4>
           <p className="text-sm text-slate-600">
-            Toont eerste {Math.min(previewData.preview_items.length, 20)} rijen van {previewData.total_rows} totaal
+            Toont eerste {Math.min(previewItems.length, 20)} rijen van {previewData?.total_rows || 0} totaal
           </p>
         </div>
 
