@@ -1,0 +1,6 @@
+datum;debiteur;omschrijving;bedrag
+1-1-2025;PHYSITRACK* PHYSITRACK;PHYSITRACK* PHYSITRACK +358208301303, GB;€ -89,75
+;VGZ Organisatie BV;Uw ref: 202200008296, Natura decl. 103271663.;€ 124,76
+2-1-2025;;Test zonder debiteur;€ -0,25
+invalid-date;Test Crediteur;Test beschrijving;geen bedrag
+2-1-2025;Test OK;Test OK beschrijving;€ 100,00
