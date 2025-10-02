@@ -70,6 +70,8 @@ def parse_from_mongo(item):
         item['date'] = datetime.fromisoformat(item['date']).date()
     if isinstance(item.get('bank_date'), str):
         item['bank_date'] = datetime.fromisoformat(item['bank_date']).date()
+    if isinstance(item.get('verwachte_datum'), str):
+        item['verwachte_datum'] = datetime.fromisoformat(item['verwachte_datum']).date()
     if isinstance(item.get('created_at'), str):
         item['created_at'] = datetime.fromisoformat(item['created_at'])
     return item
