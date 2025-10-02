@@ -203,8 +203,8 @@ const BankReconciliation = ({ onRefresh }) => {
                   data-testid={`bank-transaction-${transaction.id}`}
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <div className="font-medium text-slate-900">
-                      {formatCurrency(transaction.amount)}
+                    <div>
+                      {formatCurrencyWithColor(transaction.amount)}
                     </div>
                     <div className="text-sm text-slate-500">
                       {formatDate(transaction.date)}
