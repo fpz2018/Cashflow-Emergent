@@ -108,7 +108,14 @@ const ImportUpload = ({ onPreviewReady }) => {
         },
       });
 
-      onPreviewReady(response.data);
+      // Add file and import type to preview data for later execution
+      const previewDataWithFile = {
+        ...response.data,
+        originalFile: selectedFile,
+        originalImportType: importType
+      };
+
+      onPreviewReady(previewDataWithFile);
     } catch (error) {
       console.error('Preview error:', error);
       
