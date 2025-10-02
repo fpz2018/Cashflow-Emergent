@@ -1,0 +1,4 @@
+Transactiedatum,Transactiebedrag,Naam tegenpartij,Transactieomschrijving,Van rekening
+2025-01-01,150.50,"CZ Zorgverzekeraar","Fysiotherapie vergoeding","NL91BUNQ0123456789"
+2025-01-02,-75.00,"Leverancier ABC","Materiaal aankoop","NL91BUNQ0123456789"
+2025-01-03,200.00,"Jan de Vries","Particuliere behandeling","NL91BUNQ0123456789"
