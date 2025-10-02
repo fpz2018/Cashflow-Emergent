@@ -85,6 +85,19 @@ const ImportUpload = ({ onPreviewReady }) => {
     setError('');
 
     try {
+      // First, inspect the file columns for better debugging
+      const inspectFormData = new FormData();
+      inspectFormData.append('file', selectedFile);
+      
+      const inspectResponse = await axios.post(`${API}/import/inspect-columns`, inspectFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      console.log('File inspection:', inspectResponse.data);
+
+      // Then proceed with preview
       const formData = new FormData();
       formData.append('file', selectedFile);
       formData.append('import_type', importType);
@@ -98,7 +111,21 @@ const ImportUpload = ({ onPreviewReady }) => {
       onPreviewReady(response.data);
     } catch (error) {
       console.error('Preview error:', error);
-      setError(error.response?.data?.detail || 'Fout bij verwerken bestand');
+      
+      // Try to provide more helpful error messages
+      let errorMessage = error.response?.data?.detail || 'Fout bij verwerken bestand';
+      
+      if (errorMessage.includes('kolom niet gevonden')) {
+        errorMessage += `\n\nTip: Controleer of uw CSV bestand de juiste kolomnamen heeft:
+        
+Voor BUNQ bestanden verwachten we kolommen zoals:
+• Datum/Date (voor datum)
+• Bedrag/Amount (voor bedrag)  
+• Tegenpartij/Counterparty (optioneel)
+• Omschrijving/Description (optioneel)`;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
