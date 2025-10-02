@@ -56,6 +56,8 @@ def prepare_for_mongo(data):
     """Convert date/datetime objects to ISO strings for MongoDB storage"""
     if isinstance(data.get('date'), date):
         data['date'] = data['date'].isoformat()
+    if isinstance(data.get('bank_date'), date):
+        data['bank_date'] = data['bank_date'].isoformat()
     if isinstance(data.get('created_at'), datetime):
         data['created_at'] = data['created_at'].isoformat()
     return data
