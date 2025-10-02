@@ -108,6 +108,10 @@ const ImportManager = ({ onRefresh }) => {
           </div>
         )}
 
+        {activeTab === 'copypaste' && (
+          <CopyPasteImport onRefresh={onRefresh} />
+        )}
+
         {activeTab === 'reconciliation' && (
           <BankReconciliation onRefresh={onRefresh} />
         )}
