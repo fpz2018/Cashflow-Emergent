@@ -19,18 +19,22 @@ const BankReconciliation = ({ onRefresh }) => {
   const fetchUnmatchedTransactions = async () => {
     try {
       setLoading(true);
+      setError('');
+      console.log('Fetching unmatched transactions from:', `${API}/bank-reconciliation/unmatched`);
       
       // Fetch unmatched bank transactions
       const bankResponse = await axios.get(`${API}/bank-reconciliation/unmatched`);
+      console.log('Bank transactions received:', bankResponse.data?.length);
       setBankTransactions(bankResponse.data);
 
       // Fetch unreconciled cashflow transactions
       const cashflowResponse = await axios.get(`${API}/transactions?reconciled=false`);
+      console.log('Cashflow transactions received:', cashflowResponse.data?.length);
       setCashflowTransactions(cashflowResponse.data);
 
     } catch (error) {
       console.error('Error fetching transactions:', error);
-      setError('Fout bij ophalen transacties');
+      setError(`Fout bij ophalen transacties: ${error.message}`);
     } finally {
       setLoading(false);
     }
