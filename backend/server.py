@@ -769,12 +769,13 @@ async def preview_import(
         if not rows:
             raise HTTPException(status_code=400, detail="CSV bestand is leeg")
         
-        # Validate rows based on import type
-        preview_items = []
-        valid_count = 0
-        error_count = 0
+        # Validate ALL rows first to get accurate statistics, then create preview
+        all_validation_results = []
+        total_valid_count = 0
+        total_error_count = 0
         
-        for i, row in enumerate(rows[:100], 1):  # Limit preview to 100 rows
+        # Process all rows for accurate statistics
+        for i, row in enumerate(rows, 1):
             if import_type == 'epd_declaraties':
                 item = validate_epd_declaratie_row(row, i)
             elif import_type == 'epd_particulier':
@@ -784,11 +785,14 @@ async def preview_import(
             else:
                 raise HTTPException(status_code=400, detail=f"Onbekend import type: {import_type}")
             
-            preview_items.append(item)
+            all_validation_results.append(item)
             if item.import_status == 'valid':
-                valid_count += 1
+                total_valid_count += 1
             else:
-                error_count += 1
+                total_error_count += 1
+        
+        # Take first 20 items for preview display
+        preview_items = all_validation_results[:20]
         
         # Column mapping
         column_mapping = {}
