@@ -1280,28 +1280,115 @@ async def match_bank_transaction(
 
 @api_router.get("/bank-reconciliation/suggestions/{bank_transaction_id}")
 async def get_reconciliation_suggestions(bank_transaction_id: str):
-    """Get suggested matches for a bank transaction"""
+    """Get suggested matches for a bank transaction (transactions + crediteuren)"""
     try:
         # Get bank transaction
         bank_trans = await db.bank_transactions.find_one({"id": bank_transaction_id})
         if not bank_trans:
             raise HTTPException(status_code=404, detail="Bank transactie niet gevonden")
         
-        bank_amount = bank_trans.get('amount', 0)
+        bank_amount = abs(bank_trans.get('amount', 0))
+        bank_original_amount = bank_trans.get('original_amount', bank_trans.get('amount', 0))
         bank_date = bank_trans.get('date', '')
+        bank_description = bank_trans.get('description', '').lower()
+        bank_counterparty = bank_trans.get('counterparty', '').lower()
         
-        # Find potential matches based on amount and date proximity
-        date_obj = datetime.fromisoformat(bank_date).date() if bank_date else date.today()
-        start_date = (date_obj - timedelta(days=7)).isoformat()
-        end_date = (date_obj + timedelta(days=7)).isoformat()
+        suggestions = []
         
-        potential_matches = await db.transactions.find({
-            "reconciled": False,
-            "amount": bank_amount,
-            "date": {"$gte": start_date, "$lte": end_date}
-        }).to_list(10)
+        # Find potential cashflow transaction matches
+        if bank_date:
+            date_obj = datetime.fromisoformat(bank_date).date() if isinstance(bank_date, str) else bank_date
+            start_date = (date_obj - timedelta(days=14)).isoformat()
+            end_date = (date_obj + timedelta(days=14)).isoformat()
+            
+            # Match by exact amount first
+            exact_matches = await db.transactions.find({
+                "reconciled": False,
+                "amount": bank_amount,
+                "date": {"$gte": start_date, "$lte": end_date}
+            }).to_list(5)
+            
+            for match in exact_matches:
+                suggestions.append({
+                    **Transaction(**parse_from_mongo(match)).dict(),
+                    "match_type": "transaction",
+                    "match_score": 95,
+                    "match_reason": "Exacte bedrag en datum match"
+                })
+            
+            # Match by similar amount (within 5% or €5)
+            if len(suggestions) < 5:
+                amount_tolerance = max(bank_amount * 0.05, 5.0)
+                similar_matches = await db.transactions.find({
+                    "reconciled": False,
+                    "amount": {
+                        "$gte": bank_amount - amount_tolerance,
+                        "$lte": bank_amount + amount_tolerance
+                    },
+                    "date": {"$gte": start_date, "$lte": end_date}
+                }).to_list(3)
+                
+                for match in similar_matches:
+                    if match not in [s for s in suggestions if s.get("match_type") == "transaction"]:
+                        suggestions.append({
+                            **Transaction(**parse_from_mongo(match)).dict(),
+                            "match_type": "transaction", 
+                            "match_score": 80,
+                            "match_reason": "Vergelijkbaar bedrag en datum"
+                        })
         
-        return [Transaction(**parse_from_mongo(trans)) for trans in potential_matches]
+        # Find potential crediteur matches (for outgoing transactions)
+        if bank_original_amount < 0:  # Uitgaande transactie
+            crediteuren = await db.crediteuren.find({"actief": True}).to_list(20)
+            
+            for crediteur in crediteuren:
+                crediteur_amount = crediteur.get('bedrag', 0)
+                crediteur_naam = crediteur.get('crediteur', '').lower()
+                
+                # Match by amount
+                amount_match = False
+                if abs(bank_amount - crediteur_amount) < 5.0:
+                    amount_match = True
+                
+                # Match by name/description
+                name_match = False
+                if (crediteur_naam and 
+                    (crediteur_naam in bank_description or 
+                     crediteur_naam in bank_counterparty or
+                     any(word in bank_description for word in crediteur_naam.split() if len(word) > 3))):
+                    name_match = True
+                
+                # Calculate match score
+                score = 0
+                reasons = []
+                if amount_match and name_match:
+                    score = 90
+                    reasons = ["Exacte bedrag match", "Naam match in beschrijving"]
+                elif amount_match:
+                    score = 70
+                    reasons = ["Exacte bedrag match"]
+                elif name_match:
+                    score = 60
+                    reasons = ["Naam match in beschrijving"]
+                
+                if score > 0:
+                    suggestions.append({
+                        "id": crediteur['id'],
+                        "type": "expense",
+                        "category": "crediteur",
+                        "amount": crediteur_amount,
+                        "description": f"Maandelijkse betaling {crediteur_naam}",
+                        "patient_name": crediteur_naam,
+                        "invoice_number": f"Crediteur-{crediteur['dag']}e",
+                        "match_type": "crediteur",
+                        "match_score": score,
+                        "match_reason": ", ".join(reasons),
+                        "crediteur_dag": crediteur.get('dag', 1)
+                    })
+        
+        # Sort by match score
+        suggestions.sort(key=lambda x: x.get("match_score", 0), reverse=True)
+        return suggestions[:8]  # Return top 8 matches
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error finding suggestions: {str(e)}")
