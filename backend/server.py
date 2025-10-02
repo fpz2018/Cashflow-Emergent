@@ -1227,7 +1227,10 @@ async def get_unmatched_bank_transactions():
         raise HTTPException(status_code=500, detail=f"Error fetching bank transactions: {str(e)}")
 
 @api_router.post("/bank-reconciliation/match")
-async def match_bank_transaction(bank_transaction_id: str, cashflow_transaction_id: str):
+async def match_bank_transaction(
+    bank_transaction_id: str = Query(...),
+    cashflow_transaction_id: str = Query(...)
+):
     """Match a bank transaction with a cashflow transaction"""
     try:
         # Update bank transaction
