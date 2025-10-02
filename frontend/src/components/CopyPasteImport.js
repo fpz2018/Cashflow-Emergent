@@ -207,8 +207,8 @@ Elektra	150,50	15`
               )}
               {activeImportType === 'crediteuren' && (
                 <>
-                  <li>• <strong>Bedrag:</strong> maandbedrag (bijv. 1200, 150.50)</li>
-                  <li>• <strong>Dag:</strong> dag van de maand 1-31 (bijv. 1, 15, 28)</li>
+                  <li>• <strong>Bedrag:</strong> maandbedrag met Euro symbool (bijv. € 1.200,00, € 12.500,00, 150,50)</li>
+                  <li>• <strong>Dag:</strong> dag van de maand 1-31 (bijv. 1, 15, 25)</li>
                 </>
               )}
             </ul>
