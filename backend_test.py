@@ -526,6 +526,178 @@ PART003,2025-01-17,Piet Bakker,95.75"""
             self.tests_run += 1
             return success1 and False
 
+    def test_crediteur_suggestions_fix(self):
+        """Test specifically that crediteur suggestions are now working"""
+        print("\n🎯 Testing Crediteur Suggestions Fix...")
+        print("   Focus: Verify suggestions endpoint returns both transaction AND crediteur matches")
+        
+        # First ensure we have crediteuren data
+        test_crediteuren = [
+            {
+                "crediteur": "Huurmaatschappij Amsterdam",
+                "bedrag": 1200.00,
+                "dag": 1
+            },
+            {
+                "crediteur": "Energieleverancier Vattenfall", 
+                "bedrag": 150.00,
+                "dag": 15
+            },
+            {
+                "crediteur": "KPN Telecom",
+                "bedrag": 45.00,
+                "dag": 20
+            }
+        ]
+        
+        created_crediteuren = []
+        for crediteur_data in test_crediteuren:
+            success, response = self.run_test(
+                f"Setup Crediteur {crediteur_data['crediteur']}",
+                "POST",
+                "crediteuren", 
+                200,
+                data=crediteur_data
+            )
+            if success and 'id' in response:
+                created_crediteuren.append(response['id'])
+        
+        # Import bank transactions that should match crediteuren
+        csv_content = """datum,bedrag,debiteur,omschrijving
+2025-01-15,-1200.00,Huurmaatschappij Amsterdam,Maandelijkse huur januari
+2025-01-16,-150.00,Vattenfall,Energierekening januari  
+2025-01-17,-45.00,KPN,Telefoonrekening januari
+2025-01-18,200.50,CZ Zorgverzekeraar,Betaling declaratie
+2025-01-19,-89.75,Albert Heijn,Boodschappen"""
+        
+        files = {
+            'file': ('test_crediteur_matching.csv', csv_content, 'text/csv')
+        }
+        data = {
+            'import_type': 'bank_bunq'
+        }
+        
+        url = f"{self.api_url}/import/execute"
+        
+        try:
+            response = requests.post(url, data=data, files=files)
+            import_success = response.status_code == 200
+            
+            if import_success:
+                self.tests_passed += 1
+                print(f"✅ Bank data import for crediteur testing - Status: {response.status_code}")
+                
+                # Get unmatched bank transactions
+                success, bank_data = self.run_test(
+                    "Get Bank Transactions for Crediteur Testing",
+                    "GET",
+                    "bank-reconciliation/unmatched",
+                    200
+                )
+                
+                if success and isinstance(bank_data, list) and len(bank_data) > 0:
+                    print(f"   Found {len(bank_data)} bank transactions to test")
+                    
+                    # Test suggestions for multiple bank transactions
+                    test_results = []
+                    
+                    for i, bank_transaction in enumerate(bank_data[:4]):  # Test first 4 transactions
+                        bank_transaction_id = bank_transaction.get('id')
+                        bank_description = bank_transaction.get('description', 'N/A')
+                        bank_amount = bank_transaction.get('amount', 0)
+                        
+                        print(f"\n   Testing suggestions for transaction {i+1}:")
+                        print(f"   - Description: {bank_description}")
+                        print(f"   - Amount: €{bank_amount}")
+                        
+                        if bank_transaction_id:
+                            success, suggestions = self.run_test(
+                                f"Get Suggestions for Transaction {i+1}",
+                                "GET",
+                                f"bank-reconciliation/suggestions/{bank_transaction_id}",
+                                200
+                            )
+                            
+                            if success and isinstance(suggestions, list):
+                                transaction_suggestions = [s for s in suggestions if s.get('match_type') == 'transaction']
+                                crediteur_suggestions = [s for s in suggestions if s.get('match_type') == 'crediteur']
+                                
+                                print(f"   - Total suggestions: {len(suggestions)}")
+                                print(f"   - Transaction suggestions: {len(transaction_suggestions)}")
+                                print(f"   - Crediteur suggestions: {len(crediteur_suggestions)}")
+                                
+                                # Detailed analysis of crediteur suggestions
+                                if crediteur_suggestions:
+                                    print(f"   ✅ CREDITEUR SUGGESTIONS FOUND!")
+                                    for j, cred_sugg in enumerate(crediteur_suggestions):
+                                        print(f"     Crediteur {j+1}: {cred_sugg.get('patient_name', 'N/A')} - €{cred_sugg.get('amount', 0)} (Score: {cred_sugg.get('match_score', 0)})")
+                                        print(f"     Reason: {cred_sugg.get('match_reason', 'N/A')}")
+                                        print(f"     Crediteur dag: {cred_sugg.get('crediteur_dag', 'N/A')}")
+                                        
+                                        # Verify required fields
+                                        required_fields = ['id', 'match_type', 'match_score', 'match_reason', 'crediteur_dag', 'patient_name', 'amount']
+                                        missing_fields = [field for field in required_fields if field not in cred_sugg or cred_sugg[field] is None]
+                                        if missing_fields:
+                                            print(f"     ⚠️  Missing fields: {missing_fields}")
+                                else:
+                                    print(f"   ❌ NO CREDITEUR SUGGESTIONS FOUND")
+                                
+                                # Record test result
+                                test_results.append({
+                                    'transaction_id': bank_transaction_id,
+                                    'description': bank_description,
+                                    'amount': bank_amount,
+                                    'total_suggestions': len(suggestions),
+                                    'transaction_suggestions': len(transaction_suggestions),
+                                    'crediteur_suggestions': len(crediteur_suggestions),
+                                    'has_crediteur_suggestions': len(crediteur_suggestions) > 0
+                                })
+                            else:
+                                test_results.append({
+                                    'transaction_id': bank_transaction_id,
+                                    'description': bank_description,
+                                    'amount': bank_amount,
+                                    'error': 'Failed to get suggestions'
+                                })
+                    
+                    # Summary of test results
+                    print(f"\n   📊 CREDITEUR SUGGESTIONS TEST SUMMARY:")
+                    total_tested = len(test_results)
+                    transactions_with_crediteur_suggestions = sum(1 for r in test_results if r.get('has_crediteur_suggestions', False))
+                    
+                    print(f"   - Total transactions tested: {total_tested}")
+                    print(f"   - Transactions with crediteur suggestions: {transactions_with_crediteur_suggestions}")
+                    print(f"   - Success rate: {(transactions_with_crediteur_suggestions/total_tested*100):.1f}%" if total_tested > 0 else "   - Success rate: 0%")
+                    
+                    # Test is successful if we found crediteur suggestions for at least some transactions
+                    crediteur_fix_working = transactions_with_crediteur_suggestions > 0
+                    
+                    if crediteur_fix_working:
+                        print(f"   ✅ CREDITEUR SUGGESTIONS FIX IS WORKING!")
+                        print(f"   ✅ Backend now returns both transaction AND crediteur suggestions")
+                    else:
+                        print(f"   ❌ CREDITEUR SUGGESTIONS FIX NOT WORKING")
+                        print(f"   ❌ Backend still only returns transaction suggestions")
+                    
+                    return crediteur_fix_working
+                else:
+                    print("   ❌ No bank transactions found for testing")
+                    return False
+            else:
+                print(f"❌ Bank data import failed - Status: {response.status_code}")
+                try:
+                    error_detail = response.json()
+                    print(f"   Error: {error_detail}")
+                except:
+                    print(f"   Response: {response.text}")
+                self.tests_run += 1
+                return False
+                
+        except Exception as e:
+            print(f"❌ Crediteur suggestions test error: {str(e)}")
+            self.tests_run += 1
+            return False
+
     def test_error_handling(self):
         """Test error handling"""
         print("\n🚨 Testing Error Handling...")
