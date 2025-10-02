@@ -318,9 +318,14 @@ Voor BUNQ bestanden verwachten we kolommen zoals:
           <div>
             <h4 className="font-medium text-slate-800 mb-2">EPD Particuliere Facturen Format:</h4>
             <ul className="list-disc list-inside space-y-1">
-              <li>Kolommen: <code className="bg-slate-100 px-1 rounded">factuur, datum, debiteur, bedrag</code></li>
-              <li>Zelfde datum en bedrag formats als declaraties</li>
+              <li><strong>Kolommen:</strong> factuur, datum, debiteur, bedrag</li>
+              <li><strong>Datum format:</strong> 8-1-2025 (dag-maand-jaar)</li>
+              <li><strong>Bedrag format:</strong> € 75,00 of € 1.250,50 (met Euro symbool en komma)</li>
+              <li><strong>Debiteur:</strong> Naam van de particuliere patiënt</li>
             </ul>
+            <div className="mt-2 p-2 bg-green-50 rounded text-xs text-green-700">
+              <strong>✅ Compatible:</strong> Zelfde format als EPD declaraties met puntkomma delimiter
+            </div>
           </div>
           
           <div>
