@@ -203,19 +203,19 @@ const ImportPreview = ({ previewData, onComplete, onBack }) => {
                       </td>
                     </>
                   )}
-                  {previewData.import_type === 'bank_bunq' && (
+                  {previewData?.import_type === 'bank_bunq' && (
                     <>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900">
-                        {item.mapped_data.date ? formatDate(item.mapped_data.date) : '-'}
+                        {item?.mapped_data?.date ? formatDate(item.mapped_data.date) : '-'}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900">
-                        {item.mapped_data.amount ? formatCurrency(item.mapped_data.amount) : '-'}
+                        {item?.mapped_data?.amount ? formatCurrency(item.mapped_data.amount) : '-'}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900">
-                        {item.mapped_data.counterparty || '-'}
+                        {item?.mapped_data?.counterparty || '-'}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 max-w-xs truncate">
-                        {item.mapped_data.description || '-'}
+                        {item?.mapped_data?.description || '-'}
                       </td>
                     </>
                   )}
