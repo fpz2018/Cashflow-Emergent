@@ -161,6 +161,53 @@ class BankTransaction(BaseModel):
     account_number: Optional[str] = None
     reconciled: bool = False
 
+# Nieuwe models voor verzekeraars en crediteuren
+class Verzekeraar(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    naam: str
+    termijn: int  # Betaaltermijn in dagen
+    actief: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class VerzekeraarCreate(BaseModel):
+    naam: str
+    termijn: int
+
+class Crediteur(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    crediteur: str
+    bedrag: float
+    dag: int  # Dag van de maand (1-31)
+    actief: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CrediteurCreate(BaseModel):
+    crediteur: str
+    bedrag: float
+    dag: int
+
+class CopyPasteImportRequest(BaseModel):
+    data: str  # Raw copy-paste data
+    import_type: str  # 'verzekeraars' of 'crediteuren'
+
+class CopyPasteImportResult(BaseModel):
+    success: bool
+    imported_count: int
+    error_count: int
+    errors: List[str]
+    preview_data: List[Dict[str, Any]]
+
+class VerwachteBetaling(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    transaction_id: Optional[str] = None  # Link naar declaratie
+    crediteur_id: Optional[str] = None    # Link naar crediteur
+    type: str  # 'declaratie' of 'crediteur'
+    beschrijving: str
+    bedrag: float
+    verwachte_datum: date
+    status: str = 'open'  # 'open', 'betaald', 'overdue'
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 # Transaction endpoints
 @api_router.post("/transactions", response_model=Transaction)
 async def create_transaction(transaction: TransactionCreate):
