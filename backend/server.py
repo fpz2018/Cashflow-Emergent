@@ -133,6 +133,7 @@ class ImportPreview(BaseModel):
     error_rows: int
     preview_items: List[ImportPreviewItem]
     column_mapping: Dict[str, str]
+    all_errors: Optional[List[str]] = []  # All validation errors for debugging
 
 class ImportResult(BaseModel):
     success: bool
