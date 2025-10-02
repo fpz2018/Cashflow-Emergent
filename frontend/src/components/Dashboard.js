@@ -163,21 +163,27 @@ const Dashboard = ({
         </div>
       )}
 
-      {/* Recent Transactions */}
-      <div className="modern-card">
-        <div className="modern-card-header">
-          <h3 className="text-lg font-semibold text-slate-900">Recente Transacties</h3>
-          <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-            Alle transacties bekijken
-          </button>
+      {/* Dashboard Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Transactions */}
+        <div className="modern-card">
+          <div className="modern-card-header">
+            <h3 className="text-lg font-semibold text-slate-900">Recente Transacties</h3>
+            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              Alle transacties bekijken
+            </button>
+          </div>
+          
+          <TransactionList
+            transactions={transactions.slice(0, 5)}
+            onEdit={handleEditTransaction}
+            onDelete={onDeleteTransaction}
+            formatCurrency={formatCurrency}
+          />
         </div>
-        
-        <TransactionList
-          transactions={transactions.slice(0, 10)}
-          onEdit={handleEditTransaction}
-          onDelete={onDeleteTransaction}
-          formatCurrency={formatCurrency}
-        />
+
+        {/* Verwachte Betalingen */}
+        <VerwachteBetalingen />
       </div>
 
       {/* Transaction Form Modal */}
