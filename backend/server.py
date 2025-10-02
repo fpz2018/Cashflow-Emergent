@@ -1245,12 +1245,18 @@ async def match_bank_transaction(
             {"$set": {"reconciled": True}}
         )
         
+        # Get bank transaction details for reconciliation record
+        bank_trans = await db.bank_transactions.find_one({"id": bank_transaction_id})
+        bank_amount = bank_trans.get('amount', 0.0) if bank_trans else 0.0
+        bank_description = bank_trans.get('description', '') if bank_trans else ''
+        bank_date_str = bank_trans.get('date', '') if bank_trans else date.today().isoformat()
+        
         # Create reconciliation record
         reconciliation = BankReconciliation(
             bank_transaction_id=bank_transaction_id,
-            bank_date=date.today(),
-            bank_amount=0.0,  # Will be filled from actual bank transaction
-            bank_description="",
+            bank_date=bank_date_str if isinstance(bank_date_str, str) else date.today(),
+            bank_amount=bank_amount,
+            bank_description=bank_description,
             matched_transaction_id=cashflow_transaction_id,
             reconciliation_status="matched",
             match_confidence=1.0
