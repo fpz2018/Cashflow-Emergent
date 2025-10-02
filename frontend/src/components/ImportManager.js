@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import ImportUpload from './ImportUpload';
 import ImportPreview from './ImportPreview';
 import ImportResult from './ImportResult';
+import CopyPasteImport from './CopyPasteImport';
 import BankReconciliation from './BankReconciliation';
 
 const ImportManager = ({ onRefresh }) => {
