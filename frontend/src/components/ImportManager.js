@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ImportUpload from './ImportUpload';
 import ImportPreview from './ImportPreview';
+import ImportResult from './ImportResult';
 import BankReconciliation from './BankReconciliation';
 
 const ImportManager = ({ onRefresh }) => {
