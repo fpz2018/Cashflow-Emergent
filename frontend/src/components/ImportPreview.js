@@ -85,7 +85,7 @@ const ImportPreview = ({ previewData, onComplete, onBack }) => {
         <div>
           <h3 className="text-xl font-semibold text-slate-900">Import Voorbeeld</h3>
           <p className="text-slate-600">
-            {getImportTypeLabel(previewData.import_type)} - {previewData.file_name}
+            {getImportTypeLabel(previewData?.import_type)} - {previewData?.file_name || 'Onbekend bestand'}
           </p>
         </div>
         
