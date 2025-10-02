@@ -181,11 +181,11 @@ const ImportPreview = ({ previewData, onComplete, onBack }) => {
                 >
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center">
-                      {getStatusIcon(item.import_status)}
+                      {getStatusIcon(item?.import_status)}
                     </div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900">
-                    {item.row_number}
+                    {item?.row_number || '-'}
                   </td>
                   {previewData?.import_type !== 'bank_bunq' && (
                     <>
