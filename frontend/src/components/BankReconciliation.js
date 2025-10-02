@@ -234,23 +234,41 @@ const BankReconciliation = ({ onRefresh }) => {
                 Geen mogelijke matches gevonden
               </div>
             ) : (
-              suggestions.map((transaction) => {
-                const matchScore = getMatchScore(
-                  selectedBankTransaction.amount,
-                  transaction.amount,
-                  selectedBankTransaction.date,
-                  transaction.date
-                );
+              suggestions.map((item) => {
+                // Calculate match score differently for crediteur vs transaction
+                const matchScore = item.match_type === 'crediteur' 
+                  ? item.match_score 
+                  : getMatchScore(
+                      selectedBankTransaction.amount,
+                      item.amount,
+                      selectedBankTransaction.date,
+                      item.date
+                    );
+
+                const isTransaction = item.match_type === 'transaction';
+                const isCrediteur = item.match_type === 'crediteur';
 
                 return (
                   <div
-                    key={transaction.id}
+                    key={item.id}
                     className="p-4 border border-slate-200 rounded-lg hover:border-slate-300 transition-all"
-                    data-testid={`suggestion-${transaction.id}`}
+                    data-testid={`suggestion-${item.id}`}
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <div className="font-medium text-slate-900">
-                        {formatCurrency(transaction.amount)}
+                      <div className="flex items-center gap-2">
+                        <div className="font-medium text-slate-900">
+                          {formatCurrency(item.amount)}
+                        </div>
+                        {isCrediteur && (
+                          <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-700 font-medium">
+                            Crediteur
+                          </span>
+                        )}
+                        {isTransaction && (
+                          <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 font-medium">
+                            Transactie
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`px-2 py-1 rounded-full text-xs ${
@@ -258,35 +276,58 @@ const BankReconciliation = ({ onRefresh }) => {
                           matchScore >= 50 ? 'bg-yellow-100 text-yellow-700' :
                           'bg-red-100 text-red-700'
                         }`}>
-                          {matchScore}% match
+                          {Math.round(matchScore)}% match
                         </span>
-                        <span className="text-sm text-slate-500">
-                          {formatDate(transaction.date)}
-                        </span>
+                        {isTransaction && (
+                          <span className="text-sm text-slate-500">
+                            {formatDate(item.date)}
+                          </span>
+                        )}
+                        {isCrediteur && item.crediteur_dag && (
+                          <span className="text-sm text-slate-500">
+                            {item.crediteur_dag}e van de maand
+                          </span>
+                        )}
                       </div>
                     </div>
                     
                     <div className="text-sm text-slate-600 mb-2">
-                      <strong>Beschrijving:</strong> {transaction.description}
+                      <strong>Beschrijving:</strong> {item.description}
                     </div>
                     
-                    {transaction.patient_name && (
+                    {item.match_reason && (
                       <div className="text-sm text-slate-600 mb-2">
-                        <strong>Patiënt:</strong> {transaction.patient_name}
+                        <strong>Match reden:</strong> {item.match_reason}
+                      </div>
+                    )}
+                    
+                    {item.patient_name && isTransaction && (
+                      <div className="text-sm text-slate-600 mb-2">
+                        <strong>Patiënt:</strong> {item.patient_name}
                       </div>
                     )}
                     
                     <div className="flex justify-between items-center mt-3">
-                      <span className={`category-badge category-${transaction.category}`}>
-                        {transaction.category.toUpperCase()}
+                      <span className={`category-badge category-${item.category}`}>
+                        {item.category.toUpperCase()}
                       </span>
                       
                       <button
-                        onClick={() => handleMatch(selectedBankTransaction.id, transaction.id)}
-                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors btn-animation"
-                        data-testid={`match-button-${transaction.id}`}
+                        onClick={() => {
+                          if (isCrediteur) {
+                            handleMatchCrediteur(selectedBankTransaction.id, item.id);
+                          } else {
+                            handleMatch(selectedBankTransaction.id, item.id);
+                          }
+                        }}
+                        className={`px-3 py-1 text-white text-sm rounded-lg transition-colors btn-animation ${
+                          isCrediteur 
+                            ? 'bg-purple-600 hover:bg-purple-700' 
+                            : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
+                        data-testid={`match-button-${item.id}`}
                       >
-                        Koppelen
+                        {isCrediteur ? 'Koppel Crediteur' : 'Koppelen'}
                       </button>
                     </div>
                   </div>
