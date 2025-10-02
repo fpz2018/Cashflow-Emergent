@@ -103,22 +103,14 @@ const BankReconciliation = ({ onRefresh }) => {
   };
 
   const formatCurrencyWithColor = (amount) => {
-    const isNegative = amount < 0;
     const formatted = formatCurrency(amount);
+    const isNegative = amount < 0;
     
-    if (isNegative) {
-      return (
-        <span className="text-red-600 font-medium">
-          {formatted}
-        </span>
-      );
-    } else {
-      return (
-        <span className="text-green-600 font-medium">
-          {formatted}
-        </span>
-      );
-    }
+    return (
+      <span className={isNegative ? "text-red-600 font-medium" : "text-green-600 font-medium"}>
+        {formatted}
+      </span>
+    );
   };
 
   const formatDate = (dateString) => {
