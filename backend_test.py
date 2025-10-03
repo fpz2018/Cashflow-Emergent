@@ -922,6 +922,7 @@ def main():
         ("Individual Transaction", tester.test_individual_transaction),
         ("Update Transaction", tester.test_update_transaction),
         ("Cashflow Endpoints", tester.test_cashflow_endpoints),
+        ("Cashflow Forecast Endpoints", tester.test_cashflow_forecast_endpoints),
         ("Import Preview", tester.test_import_preview_endpoints),
         ("Import Execute", tester.test_import_execute_endpoints),
         ("Crediteuren Endpoint", tester.test_crediteuren_endpoint),
