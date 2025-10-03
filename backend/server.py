@@ -1705,7 +1705,7 @@ async def get_correction_suggestions(correctie_id: str):
                 "$gte": correction_amount - tolerance,
                 "$lte": correction_amount + tolerance + 1000  # Allow for larger original amounts
             }
-        }).to_list(10)
+        }).to_list(50)  # Increased from 10 to 50 to get more potential matches
         
         for transaction in similar_transactions:
             score = 0
