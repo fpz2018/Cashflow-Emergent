@@ -1725,9 +1725,9 @@ async def get_correction_suggestions(correctie_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error finding suggestions: {str(e)}")
 
-# Correcties Bulk Import
-@api_router.post("/correcties/copy-paste-import")
-async def import_correcties_copy_paste(request: CopyPasteImportRequest):
+# Correcties Bulk Import - Creditfactuur Particulier
+@api_router.post("/correcties/import-creditfactuur")
+async def import_creditfactuur_particulier(request: CopyPasteImportRequest):
     """Import correcties via copy-paste data"""
     try:
         # Expected columns for correcties
