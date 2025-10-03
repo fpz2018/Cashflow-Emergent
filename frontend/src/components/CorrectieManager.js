@@ -15,8 +15,33 @@ const CorrectieManager = () => {
   const [success, setSuccess] = useState('');
 
   // Bulk import state
+  const [bulkSubTab, setBulkSubTab] = useState('creditfactuur');
   const [bulkData, setBulkData] = useState('');
   const [bulkResult, setBulkResult] = useState(null);
+
+  const bulkSubTabs = [
+    { 
+      id: 'creditfactuur', 
+      label: 'Creditfactuur Particulier',
+      description: 'Voor particuliere patiënten',
+      columns: ['Factuurnummer', 'Bedrag', 'Beschrijving', 'Datum', 'Patiënt'],
+      example: 'INV001	50.00	Creditnota behandeling	2025-01-15	Jan Jansen'
+    },
+    { 
+      id: 'creditdeclaratie', 
+      label: 'Creditdeclaratie Verzekeraar',
+      description: 'Voor zorgverzekeraar declaraties',  
+      columns: ['Declaratienummer', 'Zorgverzekeraar', 'Bedrag', 'Reden', 'Datum', 'Patiënt'],
+      example: 'DECL001	VGZ	75.50	Dubbele declaratie	2025-01-14	Piet Pietersen'
+    },
+    { 
+      id: 'correctiefactuur', 
+      label: 'Correctiefactuur Verzekeraar',
+      description: 'Voor zorgverzekeraar correcties',
+      columns: ['Declaratienummer', 'Zorgverzekeraar', 'Oorspronkelijk Bedrag', 'Gecorrigeerd Bedrag', 'Reden', 'Datum'],
+      example: 'DECL002	CZ	100.00	85.50	Tarief correctie	2025-01-13'
+    }
+  ];
 
   // Form state for creating corrections
   const [correctieForm, setCorrectieForm] = useState({
