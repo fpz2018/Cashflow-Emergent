@@ -1839,14 +1839,23 @@ async def import_creditfactuur_particulier(request: CopyPasteImportRequest):
                         from dateutil import parser
                         correction_date = parser.parse(correction_date, dayfirst=True).date()
                 
+                # Extract patient name from debiteur field (everything after the dash)
+                debiteur = correction_data.get('debiteur', '')
+                patient_name = ''
+                if '-' in debiteur:
+                    # Split on dash and take everything after it, strip whitespace
+                    patient_name = debiteur.split('-', 1)[1].strip()
+                else:
+                    patient_name = debiteur
+                
                 # Create correction object
                 correction = Correction(
                     correction_type=correction_type,
                     original_invoice_number='',  # Will try to match by patient name
                     amount=abs(parse_dutch_currency(correction_data.get('bedrag', '0'))),  # Make positive
-                    description=f"Creditfactuur {correction_data.get('factuur', '')} - {correction_data.get('debiteur', '')}",
+                    description=f"Creditfactuur {correction_data.get('factuur', '')} - {patient_name}",
                     date=correction_date,
-                    patient_name=correction_data.get('debiteur', '')
+                    patient_name=patient_name
                 )
                 
                 # Try automatic matching
