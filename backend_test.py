@@ -995,11 +995,12 @@ PART003,2025-01-17,Piet Bakker,95.75"""
             print(f"❌ Request failed with exception: {str(e)}")
             return False
 
-    def test_correcties_suggestions_endpoint(self):
-        """Test the modified suggestions endpoint for corrections to verify more matches from whole year"""
-        print("\n🎯 Testing Correcties Suggestions Endpoint...")
-        print("   Focus: Verify suggestions endpoint shows more matches from whole year, not just January")
-        print("   Testing changes: 50 potential matches, score threshold 20, no 90-day limit, category filtering")
+    def test_correcties_suggestions_aggregation_pipeline(self):
+        """Test the new MongoDB aggregation pipeline in correcties suggestions endpoint"""
+        print("\n🎯 Testing Correcties Suggestions MongoDB Aggregation Pipeline...")
+        print("   Focus: Verify new aggregation pipeline shows matches from all months, not just January")
+        print("   Expected: Pipeline sorts by date (newest first) then amount, returns matches from different months")
+        print("   Testing for correction dated 2025-08-20 should return August/recent matches, not January")
         
         # Step 1: Create test transactions across different months with particulier category
         print("\n--- Step 1: Creating test transactions across different months ---")
