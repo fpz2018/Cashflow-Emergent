@@ -769,17 +769,10 @@ def validate_epd_declaratie_row(row: Dict[str, str], row_number: int) -> ImportP
         else:
             errors.append('Bedrag is verplicht')
             
-        # Verzekeraar - extract clean name from format like "202200008321-Centrale Verwerkingseenheid CZ: CZ, Nationale-Nederlanden en OHRA"
+        # Verzekeraar - extract clean name (remove factuurnummer prefix)
         verzekeraar_raw = row.get('verzekeraar', '').strip()
-        if verzekeraar_raw:
-            # Try to extract the clean verzekeraar name after the dash
-            if '-' in verzekeraar_raw:
-                verzekeraar_clean = verzekeraar_raw.split('-', 1)[1].strip()
-            else:
-                verzekeraar_clean = verzekeraar_raw
-            mapped_data['patient_name'] = verzekeraar_clean
-        else:
-            mapped_data['patient_name'] = ''
+        verzekeraar_clean = extract_clean_name(verzekeraar_raw)
+        mapped_data['patient_name'] = verzekeraar_clean
             
         mapped_data['description'] = f"Declaratie {mapped_data.get('invoice_number', '')} - {mapped_data.get('patient_name', '')}"
         mapped_data['type'] = 'income'
