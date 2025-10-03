@@ -125,6 +125,15 @@ function App() {
                   </button>
                   <button 
                     className={`font-medium transition-colors ${
+                      activeView === 'setup' ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                    onClick={() => setActiveView('setup')}
+                    data-testid="nav-setup"
+                  >
+                    Data Setup
+                  </button>
+                  <button 
+                    className={`font-medium transition-colors ${
                       activeView === 'import' ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
                     }`}
                     onClick={() => setActiveView('import')}
