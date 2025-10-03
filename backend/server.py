@@ -1700,7 +1700,7 @@ async def get_correction_suggestions(correctie_id: str):
         suggestions = []
         
         # Find transactions with similar amounts (within 10%)
-        correction_amount = correctie.get('amount', 0)
+        correction_amount = abs(correctie.get('amount', 0))  # Use absolute value for comparison
         tolerance = correction_amount * 0.1
         
         # Determine which category to search based on correction type
