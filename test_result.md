@@ -141,6 +141,18 @@
           agent: "testing"
           comment: "CASHFLOW FORECAST ENDPOINTS COMPREHENSIVE TESTING COMPLETED ✅ All requested endpoints are working correctly: ✅ /api/cashflow-forecast?days=30 returns proper forecast structure with forecast_days array (30 days), start_date, total_expected_income (€276,712.68), total_expected_expenses (€-35,885.5), net_expected (€240,827.18) ✅ /api/cashflow-forecast?days=60 returns 60-day forecast correctly ✅ /api/cashflow-forecast?days=90 returns 90-day forecast correctly ✅ /api/bank-saldo returns empty array (no data yet) with correct structure ✅ /api/overige-omzet returns array with 1 entry, correct structure verified ✅ /api/correcties returns empty array (no data yet) with correct structure ✅ No 500 errors detected on any endpoint ✅ All data structures are correct and match expected format ✅ Forecast endpoint properly calculates expected income from unreconciled zorgverzekeraar transactions and crediteur payments ✅ Ready for frontend CashflowForecast component integration"
 
+  - task: "Dutch formatting bulk import endpoints voor correcties"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "DUTCH FORMATTING BULK IMPORT TESTING COMPLETED ✅ Fixed critical backend bug in parse_copy_paste_data function unpacking ✅ /api/correcties/import-creditfactuur endpoint now working correctly with Dutch formatting ✅ Dutch currency parsing (€ -48,50) works correctly - converts to 48.5 ✅ Dutch date parsing (20-2-2025) works correctly - converts to 2025-02-20 ✅ Tab-separated data parsing works correctly ✅ import_type parameter is now accepted without 'Field required' errors ✅ Response format includes successful_imports, failed_imports, auto_matched counters ✅ Test data: 2 records imported successfully with 0 failures ✅ Created corrections stored correctly in database with proper amounts and dates ✅ Backend bug fixed in all 3 correcties import endpoints (creditfactuur, creditdeclaratie, correctiefactuur) ✅ All Dutch formatting requirements working as expected"
+
 ## frontend:
   - task: "Bank reconciliation UI voor crediteur matching"
     implemented: true
