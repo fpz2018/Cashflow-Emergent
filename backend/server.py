@@ -850,14 +850,9 @@ def validate_epd_particulier_row(row: Dict[str, str], row_number: int) -> Import
         else:
             errors.append('Bedrag is verplicht')
             
-        # Extract patient name from debiteur field (everything after the dash)
+        # Extract clean patient name (remove factuurnummer prefix)
         debiteur = row.get('debiteur', '').strip()
-        patient_name = ''
-        if '-' in debiteur:
-            # Split on dash and take everything after it, strip whitespace
-            patient_name = debiteur.split('-', 1)[1].strip()
-        else:
-            patient_name = debiteur
+        patient_name = extract_clean_name(debiteur)
         
         mapped_data['patient_name'] = patient_name
         mapped_data['description'] = f"Particuliere factuur {mapped_data.get('invoice_number', '')} - {patient_name}"
