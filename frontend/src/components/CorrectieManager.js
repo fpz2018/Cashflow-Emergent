@@ -160,7 +160,22 @@ const CorrectieManager = () => {
       setError('');
       setBulkResult(null);
 
-      const response = await axios.post(`${API}/correcties/copy-paste-import`, {
+      let endpoint;
+      switch(bulkSubTab) {
+        case 'creditfactuur':
+          endpoint = 'import-creditfactuur';
+          break;
+        case 'creditdeclaratie':
+          endpoint = 'import-creditdeclaratie';
+          break;
+        case 'correctiefactuur':
+          endpoint = 'import-correctiefactuur';
+          break;
+        default:
+          endpoint = 'import-creditfactuur';
+      }
+
+      const response = await axios.post(`${API}/correcties/${endpoint}`, {
         data: bulkData
       });
 
