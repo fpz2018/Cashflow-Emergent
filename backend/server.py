@@ -1725,6 +1725,131 @@ async def get_correction_suggestions(correctie_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error finding suggestions: {str(e)}")
 
+# Correcties Bulk Import
+@api_router.post("/correcties/copy-paste-import")
+async def import_correcties_copy_paste(request: CopyPasteImportRequest):
+    """Import correcties via copy-paste data"""
+    try:
+        # Expected columns for correcties
+        expected_columns = [
+            "type",           # creditfactuur_particulier, creditdeclaratie_verzekeraar, correctiefactuur_verzekeraar  
+            "factuurnummer",  # Original invoice number to match against
+            "bedrag",         # Correction amount
+            "beschrijving",   # Description
+            "datum",          # Date of correction
+            "patient"         # Patient name (optional)
+        ]
+        
+        corrections, errors = parse_copy_paste_data(request.data, expected_columns)
+        
+        if not corrections and errors:
+            raise HTTPException(status_code=400, detail=f"Geen geldige correcties gevonden. Fouten: {'; '.join(errors[:3])}")
+        
+        # Process each correction
+        successful_imports = 0
+        failed_imports = []
+        auto_matched = 0
+        
+        for i, correction_data in enumerate(corrections):
+            try:
+                # Validate correction type
+                correction_type = correction_data.get('type', '').lower()
+                if 'creditfactuur' in correction_type and 'particulier' in correction_type:
+                    correction_type = "creditfactuur_particulier"
+                elif 'creditdeclaratie' in correction_type:
+                    correction_type = "creditdeclaratie_verzekeraar"  
+                elif 'correctiefactuur' in correction_type:
+                    correction_type = "correctiefactuur_verzekeraar"
+                else:
+                    # Default based on keywords
+                    if any(word in correction_data.get('beschrijving', '').lower() for word in ['particulier', 'privé']):
+                        correction_type = "creditfactuur_particulier"
+                    else:
+                        correction_type = "creditdeclaratie_verzekeraar"
+                
+                # Parse date
+                correction_date = correction_data.get('datum')
+                if isinstance(correction_date, str):
+                    correction_date = datetime.strptime(correction_date, "%Y-%m-%d").date()
+                
+                # Create correction object
+                correction = Correction(
+                    correction_type=correction_type,
+                    original_invoice_number=correction_data.get('factuurnummer', ''),
+                    amount=float(correction_data.get('bedrag', 0)),
+                    description=correction_data.get('beschrijving', ''),
+                    date=correction_date,
+                    patient_name=correction_data.get('patient', '')
+                )
+                
+                # Try automatic matching
+                if correction.original_invoice_number:
+                    # Find original transaction by invoice number
+                    original = await db.transactions.find_one({
+                        "invoice_number": correction.original_invoice_number
+                    })
+                    
+                    if original:
+                        correction.original_transaction_id = original['id']
+                        correction.matched = True
+                        auto_matched += 1
+                        
+                        # Update original transaction with corrected amount
+                        corrected_amount = original['amount'] - correction.amount
+                        await db.transactions.update_one(
+                            {"id": original['id']},
+                            {"$set": {"amount": corrected_amount}}
+                        )
+                
+                # Enhanced automatic matching if invoice number match failed
+                if not correction.matched and correction.patient_name:
+                    # Try to match by patient name and amount similarity
+                    potential_matches = await db.transactions.find({
+                        "patient_name": {"$regex": correction.patient_name, "$options": "i"},
+                        "amount": {"$gte": correction.amount * 0.8, "$lte": correction.amount * 5}  # Amount range
+                    }).limit(5).to_list(5)
+                    
+                    for potential in potential_matches:
+                        # Score the match
+                        name_similarity = len(set(correction.patient_name.lower().split()) & 
+                                           set(potential.get('patient_name', '').lower().split()))
+                        amount_ratio = min(correction.amount / potential['amount'], 
+                                         potential['amount'] / correction.amount)
+                        
+                        if name_similarity >= 2 and amount_ratio >= 0.8:  # Good match
+                            correction.original_transaction_id = potential['id']
+                            correction.matched = True
+                            auto_matched += 1
+                            
+                            # Update original transaction
+                            corrected_amount = potential['amount'] - correction.amount
+                            await db.transactions.update_one(
+                                {"id": potential['id']},
+                                {"$set": {"amount": corrected_amount}}
+                            )
+                            break
+                
+                # Save correction
+                correction_dict = prepare_for_mongo(correction.dict())
+                await db.correcties.insert_one(correction_dict)
+                successful_imports += 1
+                
+            except Exception as e:
+                failed_imports.append(f"Rij {i+2}: {str(e)}")
+                continue
+        
+        return {
+            "message": f"Import voltooid: {successful_imports} correcties geïmporteerd",
+            "successful_imports": successful_imports,
+            "failed_imports": len(failed_imports),
+            "auto_matched": auto_matched,
+            "errors": failed_imports[:10],  # Limit errors shown
+            "total_corrections": len(corrections)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error importing correcties: {str(e)}")
+
 # Copy-Paste Import Endpoints
 @api_router.post("/copy-paste-import/preview", response_model=CopyPasteImportResult)
 async def preview_copy_paste_import(request: CopyPasteImportRequest):
