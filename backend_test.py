@@ -2312,12 +2312,12 @@ ZV003,17-1-2025,Zilveren Kruis,€ 200,25"""
         print("   Focus: Test parse_dutch_currency and validate_bunq_row with BUNQ examples")
         print("   Expected: Negative amounts stay negative, positive stay positive, no abs() conversion")
         
-        # Test data from the review request - exact BUNQ format
-        bunq_test_data = """datum,bedrag,debiteur,omschrijving
-1-1-2025,€ -89,75,PHYSITRACK* PHYSITRACK,PHYSITRACK* PHYSITRACK +358208301303 GB
-2-1-2025,€ 124,76,VGZ Organisatie BV,Uw ref: 202200008296 Natura decl. 103271663.
-3-1-2025,€ 1.311,03,Grote Betaling BV,Grote inkomsten transactie
-4-1-2025,€ -2.780,03,Grote Uitgave BV,Grote uitgaven transactie"""
+        # Test data from the review request - exact BUNQ format with semicolon delimiter
+        bunq_test_data = """datum;bedrag;debiteur;omschrijving
+1-1-2025;€ -89,75;PHYSITRACK* PHYSITRACK;PHYSITRACK* PHYSITRACK +358208301303 GB
+2-1-2025;€ 124,76;VGZ Organisatie BV;Uw ref: 202200008296 Natura decl. 103271663.
+3-1-2025;€ 1.311,03;Grote Betaling BV;Grote inkomsten transactie
+4-1-2025;€ -2.780,03;Grote Uitgave BV;Grote uitgaven transactie"""
         
         print(f"   Test scenarios:")
         print(f"   1. € -89,75 → should become -89.75 (negative expense)")
