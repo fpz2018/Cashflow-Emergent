@@ -2101,8 +2101,8 @@ async def import_correctiefactuur_verzekeraar(request: CopyPasteImportRequest):
                         correction.matched = True
                         auto_matched += 1
                         
-                        # Subtract correction amount
-                        corrected_amount = original['amount'] - correctie_bedrag
+                        # Add correction amount (correctie_bedrag is negative)
+                        corrected_amount = original['amount'] + correctie_bedrag
                         await db.transactions.update_one(
                             {"id": original['id']},
                             {"$set": {"amount": corrected_amount}}
