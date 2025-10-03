@@ -2420,11 +2420,14 @@ ZV003,17-1-2025,Zilveren Kruis,€ 200,25"""
                             if bank_transactions_response.status_code == 200:
                                 bank_transactions = bank_transactions_response.json()
                                 
-                                # Find our imported transactions
+                                # Find our imported transactions by looking for the specific descriptions
                                 bunq_transactions = [
                                     bt for bt in bank_transactions 
-                                    if any(keyword in bt.get('description', '').lower() 
-                                          for keyword in ['physitrack', 'vgz', 'grote'])
+                                    if any(desc in bt.get('description', '') 
+                                          for desc in ['PHYSITRACK* PHYSITRACK +358208301303 GB', 
+                                                      'Uw ref: 202200008296 Natura decl. 103271663.',
+                                                      'Grote inkomsten transactie',
+                                                      'Grote uitgaven transactie'])
                                 ]
                                 
                                 print(f"\n   📋 IMPORTED BUNQ TRANSACTIONS VERIFICATION:")
