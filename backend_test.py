@@ -995,6 +995,292 @@ PART003,2025-01-17,Piet Bakker,95.75"""
             print(f"❌ Request failed with exception: {str(e)}")
             return False
 
+    def test_correcties_suggestions_endpoint(self):
+        """Test the modified suggestions endpoint for corrections to verify more matches from whole year"""
+        print("\n🎯 Testing Correcties Suggestions Endpoint...")
+        print("   Focus: Verify suggestions endpoint shows more matches from whole year, not just January")
+        print("   Testing changes: 50 potential matches, score threshold 20, no 90-day limit, category filtering")
+        
+        # Step 1: Create test transactions across different months with particulier category
+        print("\n--- Step 1: Creating test transactions across different months ---")
+        
+        test_transactions = [
+            # January transactions
+            {
+                "type": "income",
+                "category": "particulier",
+                "amount": 100.00,
+                "description": "Particuliere behandeling januari",
+                "date": "2025-01-15",
+                "patient_name": "Jan Jansen",
+                "invoice_number": "JAN001"
+            },
+            # February transactions
+            {
+                "type": "income",
+                "category": "particulier",
+                "amount": 95.00,
+                "description": "Particuliere behandeling februari",
+                "date": "2025-02-15",
+                "patient_name": "Marie Pietersen",
+                "invoice_number": "FEB001"
+            },
+            # March transactions
+            {
+                "type": "income",
+                "category": "particulier",
+                "amount": 105.00,
+                "description": "Particuliere behandeling maart",
+                "date": "2025-03-15",
+                "patient_name": "Piet Bakker",
+                "invoice_number": "MAR001"
+            },
+            # April transactions
+            {
+                "type": "income",
+                "category": "particulier",
+                "amount": 98.00,
+                "description": "Particuliere behandeling april",
+                "date": "2025-04-15",
+                "patient_name": "Anna de Vries",
+                "invoice_number": "APR001"
+            },
+            # May transactions
+            {
+                "type": "income",
+                "category": "particulier",
+                "amount": 102.00,
+                "description": "Particuliere behandeling mei",
+                "date": "2025-05-15",
+                "patient_name": "Tom Hendriks",
+                "invoice_number": "MEI001"
+            },
+            # June transactions
+            {
+                "type": "income",
+                "category": "particulier",
+                "amount": 97.00,
+                "description": "Particuliere behandeling juni",
+                "date": "2025-06-15",
+                "patient_name": "Lisa van der Berg",
+                "invoice_number": "JUN001"
+            },
+            # Also create some zorgverzekeraar transactions (should NOT be matched)
+            {
+                "type": "income",
+                "category": "zorgverzekeraar",
+                "amount": 100.00,
+                "description": "Zorgverzekeraar declaratie",
+                "date": "2025-02-15",
+                "patient_name": "Test Verzekeraar",
+                "invoice_number": "ZV001"
+            }
+        ]
+        
+        created_transaction_ids = []
+        for i, transaction in enumerate(test_transactions):
+            success, response = self.run_test(
+                f"Create Test Transaction {i+1} ({transaction['date'][:7]})",
+                "POST",
+                "transactions",
+                200,
+                data=transaction
+            )
+            if success and 'id' in response:
+                created_transaction_ids.append(response['id'])
+                print(f"   Created: {transaction['date'][:7]} - {transaction['category']} - €{transaction['amount']}")
+        
+        if len(created_transaction_ids) < 6:
+            print("❌ Failed to create sufficient test transactions")
+            return False
+        
+        # Step 2: Create a creditfactuur correction to test suggestions against
+        print("\n--- Step 2: Creating creditfactuur correction for testing ---")
+        
+        test_correction_data = """TEST123  2025-01-20      Test Patiënt Correctie    € -100,00"""
+        
+        import_request = {
+            "data": test_correction_data,
+            "import_type": "creditfactuur_particulier"
+        }
+        
+        url = f"{self.api_url}/correcties/import-creditfactuur"
+        headers = {'Content-Type': 'application/json'}
+        
+        try:
+            response = requests.post(url, json=import_request, headers=headers)
+            
+            if response.status_code == 200:
+                print(f"✅ Creditfactuur correction created successfully")
+                
+                # Get the created correction ID
+                success, correcties = self.run_test(
+                    "Get Correcties to Find Test Correction",
+                    "GET",
+                    "correcties",
+                    200
+                )
+                
+                test_correction_id = None
+                if success and isinstance(correcties, list):
+                    for correction in correcties:
+                        if correction.get('patient_name') == 'Test Patiënt Correctie' and correction.get('amount') == 100.0:
+                            test_correction_id = correction.get('id')
+                            break
+                
+                if not test_correction_id:
+                    print("❌ Could not find created correction ID")
+                    return False
+                
+                # Step 3: Test the suggestions endpoint
+                print(f"\n--- Step 3: Testing suggestions endpoint for correction {test_correction_id[:8]}... ---")
+                
+                success, suggestions = self.run_test(
+                    "Get Correction Suggestions",
+                    "GET",
+                    f"correcties/suggestions/{test_correction_id}",
+                    200
+                )
+                
+                if success and isinstance(suggestions, list):
+                    print(f"   📊 SUGGESTIONS ANALYSIS:")
+                    print(f"     - Total suggestions returned: {len(suggestions)}")
+                    
+                    # Analyze suggestions by month
+                    month_distribution = {}
+                    category_distribution = {}
+                    score_distribution = []
+                    
+                    for suggestion in suggestions:
+                        # Extract month from date
+                        suggestion_date = suggestion.get('date', '')
+                        if suggestion_date:
+                            try:
+                                if isinstance(suggestion_date, str):
+                                    month = suggestion_date[:7]  # YYYY-MM format
+                                else:
+                                    month = str(suggestion_date)[:7]
+                                month_distribution[month] = month_distribution.get(month, 0) + 1
+                            except:
+                                pass
+                        
+                        # Track category distribution
+                        category = suggestion.get('category', 'unknown')
+                        category_distribution[category] = category_distribution.get(category, 0) + 1
+                        
+                        # Track scores
+                        score = suggestion.get('match_score', 0)
+                        score_distribution.append(score)
+                    
+                    print(f"     - Month distribution:")
+                    for month, count in sorted(month_distribution.items()):
+                        print(f"       • {month}: {count} suggestions")
+                    
+                    print(f"     - Category distribution:")
+                    for category, count in category_distribution.items():
+                        print(f"       • {category}: {count} suggestions")
+                    
+                    if score_distribution:
+                        print(f"     - Score range: {min(score_distribution)} - {max(score_distribution)}")
+                        print(f"     - Average score: {sum(score_distribution)/len(score_distribution):.1f}")
+                    
+                    # Verify the improvements
+                    print(f"\n   ✅ IMPROVEMENTS VERIFICATION:")
+                    
+                    # Check 1: More than 5 suggestions (increased limit)
+                    if len(suggestions) > 5:
+                        print(f"     ✅ Return limit increased: {len(suggestions)} suggestions (was limited to 5)")
+                    else:
+                        print(f"     ⚠️  Only {len(suggestions)} suggestions returned (expected more than 5)")
+                    
+                    # Check 2: Suggestions from multiple months (not just January)
+                    unique_months = len(month_distribution)
+                    if unique_months > 1:
+                        print(f"     ✅ Matches from multiple months: {unique_months} different months")
+                        print(f"     ✅ No longer limited to January only")
+                    else:
+                        print(f"     ❌ Only matches from {unique_months} month - still limited")
+                    
+                    # Check 3: Only particulier category (category filtering)
+                    particulier_count = category_distribution.get('particulier', 0)
+                    zorgverzekeraar_count = category_distribution.get('zorgverzekeraar', 0)
+                    
+                    if particulier_count > 0 and zorgverzekeraar_count == 0:
+                        print(f"     ✅ Category filtering working: {particulier_count} particulier, {zorgverzekeraar_count} zorgverzekeraar")
+                    elif zorgverzekeraar_count > 0:
+                        print(f"     ❌ Category filtering failed: found {zorgverzekeraar_count} zorgverzekeraar suggestions")
+                    else:
+                        print(f"     ⚠️  No particulier suggestions found")
+                    
+                    # Check 4: Lower score threshold (should show more matches)
+                    low_score_matches = sum(1 for score in score_distribution if score >= 20 and score < 40)
+                    if low_score_matches > 0:
+                        print(f"     ✅ Lower score threshold working: {low_score_matches} matches with scores 20-39")
+                    else:
+                        print(f"     ⚠️  No low-score matches found (threshold may still be too high)")
+                    
+                    # Check 5: Show sample suggestions
+                    print(f"\n   📋 SAMPLE SUGGESTIONS:")
+                    for i, suggestion in enumerate(suggestions[:5]):
+                        date = suggestion.get('date', 'N/A')
+                        amount = suggestion.get('amount', 0)
+                        patient = suggestion.get('patient_name', 'N/A')
+                        score = suggestion.get('match_score', 0)
+                        reason = suggestion.get('match_reason', 'N/A')
+                        category = suggestion.get('category', 'N/A')
+                        
+                        print(f"     {i+1}. {date} - €{amount} - {patient} ({category})")
+                        print(f"        Score: {score} - Reason: {reason}")
+                    
+                    # Overall assessment
+                    improvements_working = (
+                        len(suggestions) > 5 and  # More suggestions
+                        unique_months > 1 and    # Multiple months
+                        particulier_count > 0 and zorgverzekeraar_count == 0  # Category filtering
+                    )
+                    
+                    if improvements_working:
+                        print(f"\n   ✅ SUGGESTIONS ENDPOINT IMPROVEMENTS ARE WORKING!")
+                        print(f"   ✅ Shows more matches from whole year, not just January")
+                        print(f"   ✅ Category filtering ensures only particulier transactions")
+                        print(f"   ✅ Lower threshold and increased limits provide more options")
+                    else:
+                        print(f"\n   ❌ SOME IMPROVEMENTS NOT WORKING AS EXPECTED")
+                        if unique_months <= 1:
+                            print(f"   ❌ Still limited to single month")
+                        if zorgverzekeraar_count > 0:
+                            print(f"   ❌ Category filtering not working")
+                        if len(suggestions) <= 5:
+                            print(f"   ❌ Return limit not increased")
+                    
+                    return improvements_working
+                    
+                else:
+                    print(f"❌ Failed to get suggestions or invalid response format")
+                    return False
+                    
+            else:
+                print(f"❌ Failed to create test correction - Status: {response.status_code}")
+                try:
+                    error_detail = response.json()
+                    print(f"   Error: {error_detail}")
+                except:
+                    print(f"   Response: {response.text}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Request failed with exception: {str(e)}")
+            return False
+        
+        finally:
+            # Cleanup created transactions
+            print(f"\n--- Cleanup: Removing test transactions ---")
+            for transaction_id in created_transaction_ids:
+                try:
+                    self.run_test(f"Cleanup Transaction", "DELETE", f"transactions/{transaction_id}", 200)
+                except:
+                    pass
+
     def test_creditfactuur_particulier_category_filtering(self):
         """Test creditfactuur particulier matching logic to ensure it ONLY matches particulier transactions"""
         print("\n🎯 Testing Creditfactuur Particulier Category Filtering...")
