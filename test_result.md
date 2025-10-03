@@ -169,16 +169,19 @@
           comment: "CATEGORY FILTERING TEST COMPLETED ✅ Verified /api/correcties/import-creditfactuur ONLY matches transactions with category: 'particulier' ✅ Test scenario: Created identical transactions with 'particulier' and 'zorgverzekeraar' categories (same patient name, amount) ✅ Creditfactuur import correctly matched ONLY the particulier transaction ✅ Did NOT match the zorgverzekeraar transaction despite identical data ✅ Invoice number matching: Lines 1809-1812 filter on category: 'particulier' ✅ Patient name matching: Lines 1829-1833 filter on category: 'particulier' ✅ Auto-matching success: 1/1 imports matched correctly ✅ Verified matched transaction category and invoice number ✅ Test data: TEST001, 2025-01-15, Test Patiënt, € -50,00 ✅ CONCLUSION: Category filtering logic is working correctly - creditfactuur particulier ONLY matches particulier transactions, NOT zorgverzekeraar transactions"
 
   - task: "Correcties suggestions endpoint database query optimization"
-    implemented: false
-    working: false
+    implemented: true
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: false
           agent: "testing"
           comment: "CRITICAL BUG DISCOVERED ❌ /api/correcties/suggestions/{correctie_id} endpoint has fundamental flaw in database query ❌ Line 1721: 'await db.transactions.find(query).to_list(50)' lacks ORDER BY clause ❌ Returns random 50 matches instead of best scoring matches ❌ User complaint 'only January matches' is valid - algorithm returns wrong transactions ❌ EVIDENCE: Correction dated 2025-08-20 should return August matches (scores 69-70) but returns January matches (score 53) ❌ DATABASE ANALYSIS: 201 matching transactions exist across all months, but query returns first 50 random ones ❌ IMPACT: Despite code improvements (threshold 20, limit 20, category filtering), users still see irrelevant matches ❌ SOLUTION NEEDED: Add ORDER BY date DESC or implement proper scoring-based selection in database query ❌ Current improvements (return limit, category filter, threshold) work correctly but are undermined by poor data selection"
+        - working: true
+          agent: "testing"
+          comment: "MONGODB AGGREGATION PIPELINE SUCCESSFULLY IMPLEMENTED AND TESTED ✅ /api/correcties/suggestions/{correctie_id} endpoint now uses aggregation pipeline instead of simple find() query ✅ Pipeline implementation: Lines 1715-1751 in server.py ✅ PIPELINE STAGES: 1) $match with amount tolerance and category filtering 2) $addFields for date processing 3) $sort by date DESC (newest first), then amount ASC 4) $limit to 50 results ✅ COMPREHENSIVE TESTING COMPLETED: Created test correction dated 2025-08-20 with €48.5 amount, tested against transactions from different months ✅ RESULTS VERIFICATION: 20 suggestions returned (increased from 5), all from August/September 2025 (recent months), no January matches, scores 64-69 with proper date proximity scoring ✅ DATE DISTRIBUTION: August 2025: 3 matches, September 2025: 17 matches, January 2025: 0 matches ✅ CATEGORY FILTERING: Only particulier transactions returned (zorgverzekeraar excluded) ✅ SORTING VERIFICATION: Top suggestions are August matches (7 days from correction date) with score 69, followed by September matches (14 days) with score 67 ✅ USER COMPLAINT RESOLVED: No longer shows 'only January matches' - now shows relevant matches from correct months with proper date-based scoring ✅ AGGREGATION PIPELINE WORKING PERFECTLY: Sorts by date DESC, prioritizes recent matches, applies category filtering, returns distributed results across months"
 
 ## frontend:
   - task: "Bank reconciliation UI voor crediteur matching"
