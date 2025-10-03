@@ -195,6 +195,18 @@
           agent: "testing"
           comment: "PERSOONSNAAM EXTRACTION AND ENHANCED MATCHING TESTING COMPLETED ✅ /api/correcties/import-creditfactuur correctly extracts persoonsnamen from debiteur field after dash ✅ Test data: '202500008568-Knauff, Ienke' successfully extracts 'Knauff, Ienke' ✅ Test data: '202500008569-Pietersen, Jan' successfully extracts 'Pietersen, Jan' ✅ Dutch formatting works: 20-2-2025 date format and € -48,50 currency format parsed correctly ✅ Database storage: Corrections stored with correct patient_name field containing extracted names ✅ Import results: 2/2 records imported successfully, 1 auto-matched ✅ Enhanced matching logic implemented in suggestions endpoint (lines 1771-1802) ✅ Scoring system: Exact matches (40 points), partial matches (30 points), word overlap matches (25/15 points) ✅ /api/correcties/suggestions/{correctie_id} endpoint returns suggestions with enhanced naam matching ✅ Suggestions endpoint tested with extracted names, returns 20 suggestions with proper scoring ✅ Category filtering ensures only particulier transactions are matched ✅ CONCLUSION: Persoonsnaam extraction from debiteur field working correctly, enhanced matching logic implemented and functional"
 
+  - task: "BUNQ bank import Dutch currency formatting with sign preservation"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "BUNQ DUTCH CURRENCY IMPORT TESTING COMPLETED ✅ Successfully tested the aangepaste BUNQ bank import functionality as requested in review: ✅ PARSE_DUTCH_CURRENCY FUNCTION WORKING CORRECTLY: All test cases passed - '€ -89,75' → -89.75 ✅, '€ 124,76' → 124.76 ✅, '€ 1.311,03' → 1311.03 ✅, '€ -2.780,03' → -2780.03 ✅ ✅ VALIDATE_BUNQ_ROW FUNCTION WORKING: Correctly processes BUNQ CSV data with Dutch formatting, preserves signs properly, handles thousands separator (.) and decimal separator (,) correctly ✅ SIGN PRESERVATION VERIFIED: Negative amounts stay negative (expenses), positive amounts stay positive (income), no abs() conversion detected ✅ BUNQ CSV FORMAT SUPPORT: Correctly handles semicolon-delimited CSV format (standard for Dutch BUNQ exports) to avoid conflicts with decimal comma ✅ IMPORT EXECUTION SUCCESSFUL: All 4 test transactions imported successfully with correct amounts and signs preserved ✅ DATABASE VERIFICATION: All expected amounts found in database (-89.75, 124.76, 1311.03, -2780.03) ✅ CONCLUSION: BUNQ import modifications working correctly - removed abs() function, Dutch currency parsing functional, negative/positive amounts properly preserved as requested"
+
 ## frontend:
   - task: "Bank reconciliation UI voor crediteur matching"
     implemented: true
