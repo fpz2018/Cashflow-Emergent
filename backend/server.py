@@ -1938,15 +1938,13 @@ async def import_correctiefactuur_verzekeraar(request: CopyPasteImportRequest):
                 if isinstance(correction_date, str):
                     correction_date = datetime.strptime(correction_date, "%Y-%m-%d").date()
                 
-                oorspronkelijk = float(correction_data.get('oorspronkelijk_bedrag', 0))
-                gecorrigeerd = float(correction_data.get('gecorrigeerd_bedrag', 0))
-                correctie_bedrag = oorspronkelijk - gecorrigeerd
+                correctie_bedrag = abs(float(correction_data.get('bedrag', 0)))
                 
                 correction = Correction(
                     correction_type="correctiefactuur_verzekeraar",
-                    original_invoice_number=correction_data.get('declaratienummer', ''),
+                    original_invoice_number=correction_data.get('factuur_origineel', ''),
                     amount=correctie_bedrag,
-                    description=f"Correctie: {correction_data.get('reden', '')} - {correction_data.get('zorgverzekeraar', '')} (was: €{oorspronkelijk}, nu: €{gecorrigeerd})",
+                    description=f"Correctiefactuur {correction_data.get('factuur', '')} - {correction_data.get('verzekeraar', '')}",
                     date=correction_date,
                     patient_name=''
                 )
