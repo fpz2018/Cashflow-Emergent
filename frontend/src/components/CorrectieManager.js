@@ -128,6 +128,35 @@ const CorrectieManager = () => {
     }
   };
 
+  const handleBulkImport = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      setError('');
+      setBulkResult(null);
+
+      const response = await axios.post(`${API}/correcties/copy-paste-import`, {
+        data: bulkData
+      });
+
+      setBulkResult(response.data);
+      setSuccess(`Import voltooid: ${response.data.successful_imports} correcties geïmporteerd, ${response.data.auto_matched} automatisch gekoppeld`);
+      setBulkData('');
+
+      // Refresh data if needed
+      if (activeTab === 'overview') {
+        fetchAllCorrecties();
+      } else if (activeTab === 'match') {
+        fetchUnmatchedCorrecties();
+      }
+    } catch (error) {
+      setError(error.response?.data?.detail || 'Fout bij bulk import correcties');
+      setBulkResult(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('nl-NL', {
       style: 'currency',
