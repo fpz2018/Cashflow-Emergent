@@ -49,7 +49,14 @@ class ExpenseCategory(str, Enum):
     HUUR = "huur"
     MATERIAAL = "materiaal"
     SALARIS = "salaris"
+    CREDITEUR = "crediteur" 
+    VARIABEL = "variabel"
     OVERIG = "overig"
+
+class CorrectionType(str, Enum):
+    CREDITFACTUUR_PARTICULIER = "creditfactuur_particulier"
+    CREDITDECLARATIE_VERZEKERAAR = "creditdeclaratie_verzekeraar"
+    CORRECTIEFACTUUR_VERZEKERAAR = "correctiefactuur_verzekeraar"
 
 # Helper functions
 def prepare_for_mongo(data):
