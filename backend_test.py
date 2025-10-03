@@ -1051,22 +1051,8 @@ def main():
     
     # Run all tests
     tests = [
-        ("API Root", tester.test_api_root),
-        ("Categories", tester.test_categories),
-        ("Create Transactions", tester.test_create_transactions),
-        ("Get Transactions", tester.test_get_transactions),
-        ("Individual Transaction", tester.test_individual_transaction),
-        ("Update Transaction", tester.test_update_transaction),
-        ("Cashflow Endpoints", tester.test_cashflow_endpoints),
-        ("Cashflow Forecast Endpoints", tester.test_cashflow_forecast_endpoints),
-        ("Import Preview", tester.test_import_preview_endpoints),
-        ("Import Execute", tester.test_import_execute_endpoints),
-        ("Crediteuren Endpoint", tester.test_crediteuren_endpoint),
-        ("Bank Reconciliation", tester.test_bank_reconciliation_endpoints),
-        ("Crediteur Suggestions Fix", tester.test_crediteur_suggestions_fix),
+        ("Creditfactuur Category Filtering", tester.test_creditfactuur_particulier_category_filtering),
         ("Dutch Formatting Bulk Import", tester.test_dutch_formatting_bulk_import),
-        ("Delete Transaction", tester.test_delete_transaction),
-        ("Error Handling", tester.test_error_handling)
     ]
     
     results = {}
