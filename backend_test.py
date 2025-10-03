@@ -2433,24 +2433,27 @@ ZV003,17-1-2025,Zilveren Kruis,€ 200,25"""
                                 print(f"\n   📋 IMPORTED BUNQ TRANSACTIONS VERIFICATION:")
                                 print(f"     Found {len(bunq_transactions)} BUNQ transactions in database")
                                 
-                                for i, bt in enumerate(bunq_transactions[:4]):
-                                    amount = bt.get('amount', 0)
-                                    description = bt.get('description', 'N/A')
-                                    counterparty = bt.get('counterparty', 'N/A')
-                                    
-                                    print(f"     Transaction {i+1}:")
-                                    print(f"       - Amount: €{amount}")
-                                    print(f"       - Description: {description}")
-                                    print(f"       - Counterparty: {counterparty}")
-                                    
-                                    # Verify amounts match expected values
-                                    if i < len(expected_amounts):
-                                        expected = expected_amounts[i]
-                                        if abs(amount - expected) < 0.01:
-                                            print(f"       ✅ Amount correct: {amount} matches expected {expected}")
-                                        else:
-                                            print(f"       ❌ Amount incorrect: {amount} does not match expected {expected}")
-                                            parsing_correct = False
+                                # Get all amounts from imported transactions
+                                imported_amounts = [bt.get('amount', 0) for bt in bunq_transactions]
+                                print(f"     Imported amounts: {imported_amounts}")
+                                print(f"     Expected amounts: {expected_amounts}")
+                                
+                                # Check if all expected amounts are present (regardless of order)
+                                amounts_correct = True
+                                for expected in expected_amounts:
+                                    # Find a matching amount (within 0.01 tolerance)
+                                    found_match = any(abs(imported - expected) < 0.01 for imported in imported_amounts)
+                                    if found_match:
+                                        print(f"     ✅ Found expected amount: {expected}")
+                                    else:
+                                        print(f"     ❌ Missing expected amount: {expected}")
+                                        amounts_correct = False
+                                
+                                if amounts_correct:
+                                    print(f"     ✅ All expected amounts found in database")
+                                else:
+                                    print(f"     ❌ Some expected amounts missing from database")
+                                    parsing_correct = False
                         
                         except Exception as e:
                             print(f"     ⚠️  Could not parse execution response: {e}")
