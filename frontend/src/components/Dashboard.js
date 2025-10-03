@@ -3,6 +3,7 @@ import TransactionForm from './TransactionForm';
 import TransactionList from './TransactionList';
 import CashflowCards from './CashflowCards';
 import VerwachteBetalingen from './VerwachteBetalingen';
+import CashflowForecast from './CashflowForecast';
 
 const Dashboard = ({ 
   cashflowSummary, 
