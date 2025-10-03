@@ -1872,7 +1872,7 @@ async def import_creditdeclaratie_verzekeraar(request: CopyPasteImportRequest):
                     patient_name=''
                 )
                 
-                # Try automatic matching by declaration number
+                # Try automatic matching by original invoice number
                 if correction.original_invoice_number:
                     original = await db.transactions.find_one({
                         "invoice_number": correction.original_invoice_number,
@@ -1952,7 +1952,7 @@ async def import_correctiefactuur_verzekeraar(request: CopyPasteImportRequest):
                     patient_name=''
                 )
                 
-                # Try automatic matching by declaration number
+                # Try automatic matching by original invoice number
                 if correction.original_invoice_number:
                     original = await db.transactions.find_one({
                         "invoice_number": correction.original_invoice_number,
