@@ -1281,24 +1281,26 @@ PART003,2025-01-17,Piet Bakker,95.75"""
                         print(f"   ❌ Expected: August/September matches first due to date proximity")
                         print(f"   ❌ Actual: {january_matches} January vs {recent_matches} recent matches")
                     
-                    if improvements_working:
-                        print(f"\n   ✅ SUGGESTIONS ENDPOINT IMPROVEMENTS ARE WORKING!")
-                        print(f"   ✅ Shows more matches from whole year, not just January")
+                    if pipeline_working:
+                        print(f"\n   ✅ MONGODB AGGREGATION PIPELINE IS WORKING!")
+                        print(f"   ✅ Pipeline sorts by date DESC (newest first) then amount ASC")
+                        print(f"   ✅ Returns matches from different months, prioritizing recent dates")
                         print(f"   ✅ Category filtering ensures only particulier transactions")
-                        print(f"   ✅ Lower threshold and increased limits provide more options")
+                        print(f"   ✅ For correction dated 2025-08-20, we see August/recent matches first")
+                        print(f"   ✅ No longer limited to January matches only")
                     else:
-                        print(f"\n   ❌ CRITICAL ISSUE: SUGGESTIONS ALGORITHM HAS BUG")
-                        print(f"   ❌ Database query needs ORDER BY to get proper date distribution")
-                        print(f"   ❌ Current implementation returns random 50 matches, not best matches")
-                        print(f"   ❌ User complaint about 'only January matches' is valid - algorithm is broken")
+                        print(f"\n   ❌ AGGREGATION PIPELINE NOT WORKING AS EXPECTED")
+                        print(f"   ❌ Still getting more old matches than recent ones")
+                        print(f"   ❌ Pipeline may not be sorting correctly by date")
+                        print(f"   ❌ Expected August/September matches first for 2025-08-20 correction")
                         if unique_months <= 1:
-                            print(f"   ❌ Still limited to single month despite code changes")
+                            print(f"   ❌ Still limited to single month despite aggregation pipeline")
                         if zorgverzekeraar_count > 0:
-                            print(f"   ❌ Category filtering not working")
+                            print(f"   ❌ Category filtering not working in aggregation pipeline")
                         if len(suggestions) <= 5:
-                            print(f"   ❌ Return limit not increased")
+                            print(f"   ❌ Return limit not increased in aggregation pipeline")
                     
-                    return improvements_working
+                    return pipeline_working
                     
                 else:
                     print(f"❌ Failed to get suggestions or invalid response format")
