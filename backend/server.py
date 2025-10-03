@@ -1748,7 +1748,7 @@ async def get_correction_suggestions(correctie_id: str):
         
         # Sort by match score
         suggestions.sort(key=lambda x: x.get("match_score", 0), reverse=True)
-        return suggestions[:5]  # Return top 5 matches
+        return suggestions[:20]  # Return top 20 matches (increased from 5)
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error finding suggestions: {str(e)}")
