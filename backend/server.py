@@ -823,9 +823,17 @@ def validate_epd_particulier_row(row: Dict[str, str], row_number: int) -> Import
         else:
             errors.append('Bedrag is verplicht')
             
-        # Debiteur
-        mapped_data['patient_name'] = row.get('debiteur', '').strip()
-        mapped_data['description'] = f"Particuliere factuur {mapped_data.get('invoice_number', '')} - {mapped_data.get('patient_name', '')}"
+        # Extract patient name from debiteur field (everything after the dash)
+        debiteur = row.get('debiteur', '').strip()
+        patient_name = ''
+        if '-' in debiteur:
+            # Split on dash and take everything after it, strip whitespace
+            patient_name = debiteur.split('-', 1)[1].strip()
+        else:
+            patient_name = debiteur
+        
+        mapped_data['patient_name'] = patient_name
+        mapped_data['description'] = f"Particuliere factuur {mapped_data.get('invoice_number', '')} - {patient_name}"
         mapped_data['type'] = 'income'
         mapped_data['category'] = 'particulier'
         
