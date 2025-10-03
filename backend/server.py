@@ -1786,7 +1786,7 @@ async def import_creditfactuur_particulier(request: CopyPasteImportRequest):
                 correction = Correction(
                     correction_type=correction_type,
                     original_invoice_number='',  # Will try to match by patient name
-                    amount=abs(float(correction_data.get('bedrag', 0))),  # Make positive
+                    amount=abs(parse_dutch_currency(correction_data.get('bedrag', '0'))),  # Make positive
                     description=f"Creditfactuur {correction_data.get('factuur', '')} - {correction_data.get('debiteur', '')}",
                     date=correction_date,
                     patient_name=correction_data.get('debiteur', '')
