@@ -1777,10 +1777,21 @@ async def import_creditfactuur_particulier(request: CopyPasteImportRequest):
             try:
                 correction_type = "creditfactuur_particulier"
                 
-                # Parse date
+                # Parse date (support multiple formats)
                 correction_date = correction_data.get('datum')
                 if isinstance(correction_date, str):
-                    correction_date = datetime.strptime(correction_date, "%Y-%m-%d").date()
+                    # Try different date formats
+                    date_formats = ["%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%Y/%m/%d"]
+                    for date_format in date_formats:
+                        try:
+                            correction_date = datetime.strptime(correction_date, date_format).date()
+                            break
+                        except ValueError:
+                            continue
+                    else:
+                        # If no format worked, try parsing with dateutil
+                        from dateutil import parser
+                        correction_date = parser.parse(correction_date, dayfirst=True).date()
                 
                 # Create correction object
                 correction = Correction(
