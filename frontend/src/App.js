@@ -168,6 +168,10 @@ function App() {
                       />
                     )}
                     
+                    {activeView === 'setup' && (
+                      <DataSetup />
+                    )}
+                    
                     {activeView === 'import' && (
                       <ImportManager 
                         onRefresh={() => {
