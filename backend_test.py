@@ -1002,77 +1002,75 @@ PART003,2025-01-17,Piet Bakker,95.75"""
         print("   Expected: Pipeline sorts by date (newest first) then amount, returns matches from different months")
         print("   Testing for correction dated 2025-08-20 should return August/recent matches, not January")
         
-        # Step 1: Create test transactions across different months with particulier category
-        print("\n--- Step 1: Creating test transactions across different months ---")
+        # Step 1: Create test transactions across different months with €48.5 amount (matching review request)
+        print("\n--- Step 1: Creating test transactions across different months with €48.5 amount ---")
         
         test_transactions = [
-            # January transactions
+            # January 2025 transactions (should have lower scores due to date difference)
             {
                 "type": "income",
                 "category": "particulier",
-                "amount": 100.00,
+                "amount": 48.5,
                 "description": "Particuliere behandeling januari",
                 "date": "2025-01-15",
-                "patient_name": "Jan Jansen",
+                "patient_name": "Test Patiënt Jan",
                 "invoice_number": "JAN001"
             },
-            # February transactions
             {
                 "type": "income",
                 "category": "particulier",
-                "amount": 95.00,
-                "description": "Particuliere behandeling februari",
-                "date": "2025-02-15",
-                "patient_name": "Marie Pietersen",
-                "invoice_number": "FEB001"
+                "amount": 48.5,
+                "description": "Particuliere behandeling januari",
+                "date": "2025-01-20",
+                "patient_name": "Test Patiënt Jan2",
+                "invoice_number": "JAN002"
             },
-            # March transactions
+            # August 2025 transactions (should have higher scores due to date proximity to 2025-08-20)
             {
                 "type": "income",
                 "category": "particulier",
-                "amount": 105.00,
-                "description": "Particuliere behandeling maart",
-                "date": "2025-03-15",
-                "patient_name": "Piet Bakker",
-                "invoice_number": "MAR001"
+                "amount": 48.5,
+                "description": "Particuliere behandeling augustus",
+                "date": "2025-08-15",
+                "patient_name": "Test Patiënt Aug",
+                "invoice_number": "AUG001"
             },
-            # April transactions
             {
                 "type": "income",
                 "category": "particulier",
-                "amount": 98.00,
-                "description": "Particuliere behandeling april",
-                "date": "2025-04-15",
-                "patient_name": "Anna de Vries",
-                "invoice_number": "APR001"
+                "amount": 48.5,
+                "description": "Particuliere behandeling augustus",
+                "date": "2025-08-25",
+                "patient_name": "Test Patiënt Aug2",
+                "invoice_number": "AUG002"
             },
-            # May transactions
+            # September 2025 transactions (recent dates)
             {
                 "type": "income",
                 "category": "particulier",
-                "amount": 102.00,
-                "description": "Particuliere behandeling mei",
-                "date": "2025-05-15",
-                "patient_name": "Tom Hendriks",
-                "invoice_number": "MEI001"
+                "amount": 48.5,
+                "description": "Particuliere behandeling september",
+                "date": "2025-09-10",
+                "patient_name": "Test Patiënt Sep",
+                "invoice_number": "SEP001"
             },
-            # June transactions
+            # July 2025 transactions
             {
                 "type": "income",
                 "category": "particulier",
-                "amount": 97.00,
-                "description": "Particuliere behandeling juni",
-                "date": "2025-06-15",
-                "patient_name": "Lisa van der Berg",
-                "invoice_number": "JUN001"
+                "amount": 48.5,
+                "description": "Particuliere behandeling juli",
+                "date": "2025-07-20",
+                "patient_name": "Test Patiënt Jul",
+                "invoice_number": "JUL001"
             },
-            # Also create some zorgverzekeraar transactions (should NOT be matched)
+            # Also create some zorgverzekeraar transactions (should NOT be matched due to category filtering)
             {
                 "type": "income",
                 "category": "zorgverzekeraar",
-                "amount": 100.00,
+                "amount": 48.5,
                 "description": "Zorgverzekeraar declaratie",
-                "date": "2025-02-15",
+                "date": "2025-08-15",
                 "patient_name": "Test Verzekeraar",
                 "invoice_number": "ZV001"
             }
