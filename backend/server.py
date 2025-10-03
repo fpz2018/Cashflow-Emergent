@@ -1916,12 +1916,11 @@ async def import_correctiefactuur_verzekeraar(request: CopyPasteImportRequest):
     """Import correctiefacturen voor zorgverzekeraars"""
     try:
         expected_columns = [
-            "declaratienummer",     # Declaration number to match
-            "zorgverzekeraar",      # Insurance company name
-            "oorspronkelijk_bedrag", # Original amount
-            "gecorrigeerd_bedrag",   # Corrected amount
-            "reden",                # Reason for correction
-            "datum"                 # Date of correction
+            "factuur",          # Correction invoice number
+            "datum",             # Date of correction
+            "verzekeraar",       # Insurance company name
+            "factuur_origineel", # Original invoice number to match
+            "bedrag"             # Correction amount (negative)
         ]
         
         corrections, errors = parse_copy_paste_data(request.data, expected_columns)
