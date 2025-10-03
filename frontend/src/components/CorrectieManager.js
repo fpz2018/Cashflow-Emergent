@@ -403,49 +403,77 @@ const CorrectieManager = () => {
       {/* Bulk Import Tab */}
       {activeTab === 'bulk' && (
         <div className="space-y-6">
+          {/* Sub Tabs for different correction types */}
           <div className="modern-card">
             <div className="modern-card-header">
               <h3 className="text-lg font-semibold text-slate-900">
                 Bulk Import Correcties
               </h3>
               <p className="text-sm text-slate-500">
-                Kopieer en plak correctiegegevens voor automatische verwerking
+                Kies het type correctie en import de gegevens
               </p>
             </div>
 
+            {/* Correction Type Tabs */}
+            <div className="border-b border-slate-200 mb-6">
+              <nav className="-mb-px flex space-x-8">
+                {bulkSubTabs.map((subTab) => (
+                  <button
+                    key={subTab.id}
+                    onClick={() => {
+                      setBulkSubTab(subTab.id);
+                      setBulkData('');
+                      setBulkResult(null);
+                    }}
+                    className={`py-2 px-1 border-b-2 font-medium text-sm transition-all ${
+                      bulkSubTab === subTab.id
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                    }`}
+                  >
+                    <div>
+                      <div className="font-medium">{subTab.label}</div>
+                      <div className="text-xs opacity-75">{subTab.description}</div>
+                    </div>
+                  </button>
+                ))}
+              </nav>
+            </div>
+
             <form onSubmit={handleBulkImport} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Correctie Data
-                </label>
-                <div className="mb-3 p-3 bg-slate-50 rounded-lg text-sm text-slate-600">
-                  <strong>Verwachte kolommen (gescheiden door tabs):</strong>
-                  <br />
-                  Type | Factuurnummer | Bedrag | Beschrijving | Datum | Patiënt
-                  <br /><br />
-                  <strong>Type opties:</strong>
-                  <ul className="list-disc list-inside text-xs mt-1 space-y-1">
-                    <li><strong>creditfactuur particulier</strong> - Voor particuliere patiënten</li>
-                    <li><strong>creditdeclaratie verzekeraar</strong> - Voor zorgverzekeraar declaraties</li>
-                    <li><strong>correctiefactuur verzekeraar</strong> - Voor zorgverzekeraar correcties</li>
-                  </ul>
-                </div>
-                <textarea
-                  value={bulkData}
-                  onChange={(e) => setBulkData(e.target.value)}
-                  className="form-textarea h-32"
-                  placeholder="Type	INV001	50.00	Creditnota behandeling	2025-01-15	Jan Jansen
-creditdeclaratie verzekeraar	INV002	25.50	Incorrecte declaratie	2025-01-14	Piet Pietersen"
-                  required
-                />
-              </div>
+              {bulkSubTabs.map((subTab) => (
+                bulkSubTab === subTab.id && (
+                  <div key={subTab.id}>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      {subTab.label} Data
+                    </label>
+                    <div className="mb-3 p-3 bg-slate-50 rounded-lg text-sm text-slate-600">
+                      <strong>Verwachte kolommen (gescheiden door tabs):</strong>
+                      <br />
+                      {subTab.columns.join(' | ')}
+                      <br /><br />
+                      <strong>Voorbeeld:</strong>
+                      <div className="font-mono text-xs bg-white p-2 rounded border mt-2">
+                        {subTab.example}
+                      </div>
+                    </div>
+                    <textarea
+                      value={bulkData}
+                      onChange={(e) => setBulkData(e.target.value)}
+                      className="form-textarea h-32"
+                      placeholder={subTab.example}
+                      required
+                    />
+                  </div>
+                )
+              ))}
 
               <button
                 type="submit"
                 disabled={loading || !bulkData.trim()}
                 className="btn-primary"
               >
-                {loading ? 'Importeren...' : 'Correcties Importeren'}
+                {loading ? 'Importeren...' : `${bulkSubTabs.find(t => t.id === bulkSubTab)?.label} Importeren`}
               </button>
             </form>
           </div>
