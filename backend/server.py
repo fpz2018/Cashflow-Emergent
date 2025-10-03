@@ -914,36 +914,6 @@ def validate_bunq_row(row: Dict[str, str], row_number: int) -> ImportPreviewItem
         for amount_col in amount_columns:
             if amount_col in row and row[amount_col] and str(row[amount_col]).strip():
                 amount_str = str(row[amount_col]).strip()
-                # Clean up BUNQ format: "€ -89,75" or "€ 124,76" or "1.311.03"
-                clean_amount = amount_str.replace('€', '').replace('EUR', '').strip()
-                
-                # Handle European number format (comma as decimal separator, dot as thousands separator)
-                if ',' in clean_amount:
-                    # Split by comma to handle decimal separator
-                    parts = clean_amount.rsplit(',', 1)  # Split from right, max 1 split
-                    if len(parts) == 2 and len(parts[1]) <= 2:  # Likely decimal separator
-                        # Remove dots (thousands separators) from the main part
-                        main_part = parts[0].replace('.', '')
-                        clean_amount = main_part + '.' + parts[1]
-                else:
-                    # No comma, but might have dots as thousands separators
-                    # Check if format like "1.311.03" (thousands with decimal)
-                    if '.' in clean_amount:
-                        dot_parts = clean_amount.split('.')
-                        # If we have multiple dots, treat all but last as thousands separators
-                        if len(dot_parts) > 2:
-                            # Multiple dots like "1.311.03" - last dot is decimal, others are thousands
-                            thousands_part = ''.join(dot_parts[:-1])
-                            decimal_part = dot_parts[-1]
-                            clean_amount = thousands_part + '.' + decimal_part
-                        elif len(dot_parts) == 2:
-                            # Single dot - check if it's thousands or decimal separator
-                            if len(dot_parts[1]) == 3 and dot_parts[1].isdigit():
-                                # Likely thousands separator format like "12.500"
-                                clean_amount = clean_amount.replace('.', '')
-                            # Otherwise keep as decimal separator
-                    
-                amount_str = clean_amount
                 found_amount_col = amount_col
                 break
                 
