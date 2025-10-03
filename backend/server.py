@@ -949,10 +949,11 @@ def validate_bunq_row(row: Dict[str, str], row_number: int) -> ImportPreviewItem
                 
         if amount_str:
             try:
-                original_amount = float(amount_str)
-                mapped_data['amount'] = abs(original_amount)  # Use absolute value
-                mapped_data['original_amount'] = original_amount  # Keep original for reconciliation
-            except (ValueError, InvalidOperation):
+                # Use improved Dutch currency parser to handle BUNQ format
+                parsed_amount = parse_dutch_currency(amount_str)
+                mapped_data['amount'] = parsed_amount  # Keep original sign (positive for income, negative for expenses)
+                mapped_data['original_amount'] = parsed_amount  # Keep original for reconciliation
+            except Exception:
                 errors.append(f'Ongeldig bedrag: {amount_str}')
         else:
             errors.append(f'Bedrag kolom niet gevonden. Beschikbare kolommen: {", ".join(available_columns)}')
