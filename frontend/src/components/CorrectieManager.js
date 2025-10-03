@@ -360,6 +360,111 @@ const CorrectieManager = () => {
         </div>
       )}
 
+      {/* Bulk Import Tab */}
+      {activeTab === 'bulk' && (
+        <div className="space-y-6">
+          <div className="modern-card">
+            <div className="modern-card-header">
+              <h3 className="text-lg font-semibold text-slate-900">
+                Bulk Import Correcties
+              </h3>
+              <p className="text-sm text-slate-500">
+                Kopieer en plak correctiegegevens voor automatische verwerking
+              </p>
+            </div>
+
+            <form onSubmit={handleBulkImport} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Correctie Data
+                </label>
+                <div className="mb-3 p-3 bg-slate-50 rounded-lg text-sm text-slate-600">
+                  <strong>Verwachte kolommen (gescheiden door tabs):</strong>
+                  <br />
+                  Type | Factuurnummer | Bedrag | Beschrijving | Datum | Patiënt
+                  <br /><br />
+                  <strong>Type opties:</strong>
+                  <ul className="list-disc list-inside text-xs mt-1 space-y-1">
+                    <li><strong>creditfactuur particulier</strong> - Voor particuliere patiënten</li>
+                    <li><strong>creditdeclaratie verzekeraar</strong> - Voor zorgverzekeraar declaraties</li>
+                    <li><strong>correctiefactuur verzekeraar</strong> - Voor zorgverzekeraar correcties</li>
+                  </ul>
+                </div>
+                <textarea
+                  value={bulkData}
+                  onChange={(e) => setBulkData(e.target.value)}
+                  className="form-textarea h-32"
+                  placeholder="Type	INV001	50.00	Creditnota behandeling	2025-01-15	Jan Jansen
+creditdeclaratie verzekeraar	INV002	25.50	Incorrecte declaratie	2025-01-14	Piet Pietersen"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !bulkData.trim()}
+                className="btn-primary"
+              >
+                {loading ? 'Importeren...' : 'Correcties Importeren'}
+              </button>
+            </form>
+          </div>
+
+          {/* Import Results */}
+          {bulkResult && (
+            <div className="modern-card">
+              <div className="modern-card-header">
+                <h4 className="text-lg font-semibold text-slate-900">
+                  Import Resultaten
+                </h4>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-blue-600 font-medium">Totaal Correcties</p>
+                  <p className="text-2xl font-bold text-blue-900">{bulkResult.total_corrections}</p>
+                </div>
+                
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <p className="text-sm text-green-600 font-medium">Succesvol</p>
+                  <p className="text-2xl font-bold text-green-900">{bulkResult.successful_imports}</p>
+                </div>
+                
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <p className="text-sm text-purple-600 font-medium">Auto-gekoppeld</p>
+                  <p className="text-2xl font-bold text-purple-900">{bulkResult.auto_matched}</p>
+                </div>
+                
+                <div className="bg-red-50 p-4 rounded-lg">
+                  <p className="text-sm text-red-600 font-medium">Mislukt</p>
+                  <p className="text-2xl font-bold text-red-900">{bulkResult.failed_imports}</p>
+                </div>
+              </div>
+
+              {bulkResult.errors && bulkResult.errors.length > 0 && (
+                <div>
+                  <h5 className="font-medium text-slate-900 mb-3">Import Fouten:</h5>
+                  <div className="space-y-2">
+                    {bulkResult.errors.map((error, index) => (
+                      <div key={index} className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                        {error}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-4 p-4 bg-green-50 rounded-lg">
+                <p className="text-sm text-green-800">
+                  <strong>Automatische matching:</strong> Het systeem heeft geprobeerd correcties automatisch te koppelen 
+                  aan originele facturen op basis van factuurnummer, patiëntnaam en bedragovereenkomst.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Match Corrections Tab */}
       {activeTab === 'match' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
