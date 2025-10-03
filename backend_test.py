@@ -1129,9 +1129,9 @@ PART003,2025-01-17,Piet Bakker,95.75"""
                     print(f"   Found {len(correcties)} total corrections in database")
                     for i, correction in enumerate(correcties):
                         patient_name = correction.get('patient_name', 'N/A')
-                        if f'TestPatient{unique_id}' in patient_name and correction.get('amount') == 73.25:
+                        if f'TestPatient{unique_id}' in patient_name and correction.get('amount') == 48.5:
                             test_correction_id = correction.get('id')
-                            print(f"   Found our test correction: {patient_name}")
+                            print(f"   Found our test correction: {patient_name} - €{correction.get('amount')} - {correction.get('date')}")
                             break
                     
                     # If exact match not found, try to find any recent correction
