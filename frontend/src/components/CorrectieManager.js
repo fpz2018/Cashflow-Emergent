@@ -25,7 +25,8 @@ const CorrectieManager = () => {
   });
 
   const tabs = [
-    { id: 'create', label: 'Correctie Toevoegen', icon: 'plus' },
+    { id: 'create', label: 'Handmatig Toevoegen', icon: 'plus' },
+    { id: 'bulk', label: 'Bulk Import', icon: 'upload' },
     { id: 'match', label: 'Koppelen', icon: 'link' },
     { id: 'overview', label: 'Overzicht', icon: 'list' }
   ];
