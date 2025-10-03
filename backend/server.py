@@ -1896,8 +1896,8 @@ async def import_creditfactuur_particulier(request: CopyPasteImportRequest):
                         correction.matched = True
                         auto_matched += 1
                         
-                        # Update original transaction with corrected amount
-                        corrected_amount = original['amount'] - correction.amount
+                        # Update original transaction with corrected amount (subtract absolute value)
+                        corrected_amount = original['amount'] + correction.amount  # correction.amount is negative, so this subtracts
                         await db.transactions.update_one(
                             {"id": original['id']},
                             {"$set": {"amount": corrected_amount}}
