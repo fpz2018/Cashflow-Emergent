@@ -1757,8 +1757,9 @@ async def get_correction_suggestions(correctie_id: str):
             score = 0
             reasons = []
             
-            # Amount similarity scoring
-            amount_diff = abs(transaction['amount'] - correction_amount)
+            # Amount similarity scoring (compare absolute values)
+            transaction_amount = abs(transaction['amount'])
+            amount_diff = abs(transaction_amount - correction_amount)
             if amount_diff <= tolerance:
                 score += 50
                 reasons.append("Vergelijkbaar bedrag")
