@@ -1732,11 +1732,10 @@ async def import_creditfactuur_particulier(request: CopyPasteImportRequest):
     try:
         # Expected columns for creditfactuur particulier
         expected_columns = [
-            "factuurnummer",  # Original invoice number to match against
-            "bedrag",         # Credit amount
-            "beschrijving",   # Description
-            "datum",          # Date of credit
-            "patient"         # Patient name
+            "factuur",   # Credit invoice number
+            "datum",     # Date of credit
+            "debiteur",  # Patient/debtor name  
+            "bedrag"     # Credit amount (negative)
         ]
         
         corrections, errors = parse_copy_paste_data(request.data, expected_columns)
