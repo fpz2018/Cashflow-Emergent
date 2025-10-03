@@ -127,8 +127,8 @@
           comment: "CREDITEUR SUGGESTIONS FIX VERIFIED ✅ Main agent's fix is working correctly - /api/bank-reconciliation/suggestions/{id} now returns both match_type: 'transaction' AND match_type: 'crediteur' suggestions ✅ Tested 4 different bank transactions, found crediteur suggestions in 25% of cases (1 out of 4) ✅ Crediteur suggestions contain all required fields: crediteur_dag, match_reason, match_score, patient_name, amount ✅ Example working case: PHYSITRACK transaction (€89.75) returned 2 crediteur suggestions with proper scoring (70 for amount match, 60 for name match) ✅ /api/bank-reconciliation/match-crediteur endpoint successfully creates expense transactions and marks bank transactions as reconciled ✅ Backend crediteur matching logic is now complete and functional - no longer limited to negative amounts only"
 
   - task: "Daily cashflow forecast endpoint"
-    implemented: false
-    working: "NA"
+    implemented: true
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
@@ -137,6 +137,9 @@
         - working: "NA"
           agent: "main"
           comment: "Endpoint bestaat maar heeft nog placeholder implementatie"
+        - working: true
+          agent: "testing"
+          comment: "CASHFLOW FORECAST ENDPOINTS COMPREHENSIVE TESTING COMPLETED ✅ All requested endpoints are working correctly: ✅ /api/cashflow-forecast?days=30 returns proper forecast structure with forecast_days array (30 days), start_date, total_expected_income (€276,712.68), total_expected_expenses (€-35,885.5), net_expected (€240,827.18) ✅ /api/cashflow-forecast?days=60 returns 60-day forecast correctly ✅ /api/cashflow-forecast?days=90 returns 90-day forecast correctly ✅ /api/bank-saldo returns empty array (no data yet) with correct structure ✅ /api/overige-omzet returns array with 1 entry, correct structure verified ✅ /api/correcties returns empty array (no data yet) with correct structure ✅ No 500 errors detected on any endpoint ✅ All data structures are correct and match expected format ✅ Forecast endpoint properly calculates expected income from unreconciled zorgverzekeraar transactions and crediteur payments ✅ Ready for frontend CashflowForecast component integration"
 
 ## frontend:
   - task: "Bank reconciliation UI voor crediteur matching"
