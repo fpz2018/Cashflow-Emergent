@@ -1824,10 +1824,11 @@ async def import_creditfactuur_particulier(request: CopyPasteImportRequest):
                 
                 # Enhanced automatic matching if invoice number match failed
                 if not correction.matched and correction.patient_name:
-                    # Try to match by patient name and amount similarity
+                    # Try to match by patient name and amount similarity - ONLY particuliere facturen
                     potential_matches = await db.transactions.find({
                         "patient_name": {"$regex": correction.patient_name, "$options": "i"},
-                        "amount": {"$gte": correction.amount * 0.8, "$lte": correction.amount * 5}  # Amount range
+                        "amount": {"$gte": correction.amount * 0.8, "$lte": correction.amount * 5},  # Amount range
+                        "category": "particulier"  # ONLY match particuliere facturen
                     }).limit(5).to_list(5)
                     
                     for potential in potential_matches:
