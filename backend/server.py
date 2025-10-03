@@ -1724,7 +1724,7 @@ async def get_correction_suggestions(correctie_id: str):
                 score += 30
                 reasons.append("Patiënt naam match")
             
-            # Date proximity (within 90 days)
+            # Date proximity bonus (but don't exclude based on date)
             try:
                 correction_date = datetime.fromisoformat(correctie['date']).date() if isinstance(correctie['date'], str) else correctie['date']
                 transaction_date = datetime.fromisoformat(transaction['date']).date() if isinstance(transaction['date'], str) else transaction['date']
@@ -1733,10 +1733,13 @@ async def get_correction_suggestions(correctie_id: str):
                 if date_diff <= 90:
                     score += 20 - (date_diff / 5)  # Closer dates get higher scores
                     reasons.append(f"Datum nabij ({date_diff} dagen)")
+                elif date_diff <= 365:
+                    score += 10 - (date_diff / 30)  # Small bonus for same year
+                    reasons.append(f"Zelfde jaar ({date_diff} dagen verschil)")
             except:
                 pass
             
-            if score > 40:  # Only include reasonable matches
+            if score > 20:  # Lowered threshold from 40 to 20 to show more matches
                 suggestions.append({
                     **Transaction(**parse_from_mongo(transaction)).dict(),
                     "match_score": round(score),
