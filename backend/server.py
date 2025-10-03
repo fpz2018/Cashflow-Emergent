@@ -1963,7 +1963,7 @@ async def import_correctiefactuur_verzekeraar(request: CopyPasteImportRequest):
                 if isinstance(correction_date, str):
                     correction_date = datetime.strptime(correction_date, "%Y-%m-%d").date()
                 
-                correctie_bedrag = abs(float(correction_data.get('bedrag', 0)))
+                correctie_bedrag = abs(parse_dutch_currency(correction_data.get('bedrag', '0')))
                 
                 correction = Correction(
                     correction_type="correctiefactuur_verzekeraar",
