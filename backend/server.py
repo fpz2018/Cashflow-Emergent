@@ -1577,6 +1577,154 @@ async def create_overige_omzet(description: str = Form(...), amount: float = For
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating overige omzet: {str(e)}")
 
+# Correcties endpoints
+@api_router.get("/correcties", response_model=List[Correction])
+async def get_correcties():
+    """Get all corrections"""
+    try:
+        correcties = await db.correcties.find().sort([("date", -1)]).to_list(1000)
+        return [Correction(**parse_from_mongo(correctie)) for correctie in correcties]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching correcties: {str(e)}")
+
+@api_router.post("/correcties", response_model=Correction)
+async def create_correctie(correctie: CorrectionCreate):
+    """Create a correction"""
+    try:
+        correction = Correction(**correctie.dict())
+        
+        # Try to automatically match with original transaction
+        if correctie.original_invoice_number:
+            # Find original transaction by invoice number
+            original = await db.transactions.find_one({
+                "invoice_number": correctie.original_invoice_number
+            })
+            
+            if original:
+                correction.original_transaction_id = original['id']
+                correction.matched = True
+                
+                # Update original transaction with corrected amount
+                corrected_amount = original['amount'] - correction.amount
+                await db.transactions.update_one(
+                    {"id": original['id']},
+                    {"$set": {"amount": corrected_amount}}
+                )
+        
+        correction_dict = prepare_for_mongo(correction.dict())
+        await db.correcties.insert_one(correction_dict)
+        
+        return correction
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating correctie: {str(e)}")
+
+@api_router.post("/correcties/{correctie_id}/match")
+async def match_correctie_manual(
+    correctie_id: str,
+    original_transaction_id: str = Query(...)
+):
+    """Manually match correction to original transaction"""
+    try:
+        # Get correction and original transaction
+        correctie = await db.correcties.find_one({"id": correctie_id})
+        original = await db.transactions.find_one({"id": original_transaction_id})
+        
+        if not correctie or not original:
+            raise HTTPException(status_code=404, detail="Correctie of originele transactie niet gevonden")
+        
+        # Update correction
+        await db.correcties.update_one(
+            {"id": correctie_id},
+            {"$set": {
+                "original_transaction_id": original_transaction_id,
+                "matched": True
+            }}
+        )
+        
+        # Update original transaction amount
+        corrected_amount = original['amount'] - correctie['amount']
+        await db.transactions.update_one(
+            {"id": original_transaction_id},
+            {"$set": {"amount": corrected_amount}}
+        )
+        
+        return {"message": "Correctie succesvol gekoppeld", "new_amount": corrected_amount}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error matching correctie: {str(e)}")
+
+@api_router.get("/correcties/unmatched", response_model=List[Correction])
+async def get_unmatched_correcties():
+    """Get corrections that haven't been matched yet"""
+    try:
+        correcties = await db.correcties.find({"matched": False}).sort([("date", -1)]).to_list(1000)
+        return [Correction(**parse_from_mongo(correctie)) for correctie in correcties]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching unmatched correcties: {str(e)}")
+
+@api_router.get("/correcties/suggestions/{correctie_id}")
+async def get_correction_suggestions(correctie_id: str):
+    """Get suggested transactions to match with correction"""
+    try:
+        correctie = await db.correcties.find_one({"id": correctie_id})
+        if not correctie:
+            raise HTTPException(status_code=404, detail="Correctie niet gevonden")
+        
+        suggestions = []
+        
+        # Find transactions with similar amounts (within 10%)
+        correction_amount = correctie.get('amount', 0)
+        tolerance = correction_amount * 0.1
+        
+        similar_transactions = await db.transactions.find({
+            "amount": {
+                "$gte": correction_amount - tolerance,
+                "$lte": correction_amount + tolerance + 1000  # Allow for larger original amounts
+            }
+        }).to_list(10)
+        
+        for transaction in similar_transactions:
+            score = 0
+            reasons = []
+            
+            # Amount similarity scoring
+            amount_diff = abs(transaction['amount'] - correction_amount)
+            if amount_diff <= tolerance:
+                score += 50
+                reasons.append("Vergelijkbaar bedrag")
+            
+            # Patient name matching
+            if (correctie.get('patient_name') and 
+                transaction.get('patient_name') and 
+                correctie['patient_name'].lower() in transaction['patient_name'].lower()):
+                score += 30
+                reasons.append("Patiënt naam match")
+            
+            # Date proximity (within 90 days)
+            try:
+                correction_date = datetime.fromisoformat(correctie['date']).date() if isinstance(correctie['date'], str) else correctie['date']
+                transaction_date = datetime.fromisoformat(transaction['date']).date() if isinstance(transaction['date'], str) else transaction['date']
+                
+                date_diff = abs((correction_date - transaction_date).days)
+                if date_diff <= 90:
+                    score += 20 - (date_diff / 5)  # Closer dates get higher scores
+                    reasons.append(f"Datum nabij ({date_diff} dagen)")
+            except:
+                pass
+            
+            if score > 40:  # Only include reasonable matches
+                suggestions.append({
+                    **Transaction(**parse_from_mongo(transaction)).dict(),
+                    "match_score": round(score),
+                    "match_reason": ", ".join(reasons)
+                })
+        
+        # Sort by match score
+        suggestions.sort(key=lambda x: x.get("match_score", 0), reverse=True)
+        return suggestions[:5]  # Return top 5 matches
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error finding suggestions: {str(e)}")
+
 # Copy-Paste Import Endpoints
 @api_router.post("/copy-paste-import/preview", response_model=CopyPasteImportResult)
 async def preview_copy_paste_import(request: CopyPasteImportRequest):
