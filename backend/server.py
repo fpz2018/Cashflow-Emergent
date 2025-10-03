@@ -1994,7 +1994,7 @@ async def import_creditdeclaratie_verzekeraar(request: CopyPasteImportRequest):
                 correction = Correction(
                     correction_type="creditdeclaratie_verzekeraar",
                     original_invoice_number=correction_data.get('factuur_origineel', ''),
-                    amount=abs(parse_dutch_currency(correction_data.get('bedrag', '0'))),  # Make positive
+                    amount=parse_dutch_currency(correction_data.get('bedrag', '0')),  # Keep original sign
                     description=f"Creditdeclaratie {correction_data.get('factuur', '')} - {correction_data.get('verzekeraar', '')}",
                     date=correction_date,
                     patient_name=''
