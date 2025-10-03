@@ -1064,6 +1064,7 @@ def main():
         ("Crediteuren Endpoint", tester.test_crediteuren_endpoint),
         ("Bank Reconciliation", tester.test_bank_reconciliation_endpoints),
         ("Crediteur Suggestions Fix", tester.test_crediteur_suggestions_fix),
+        ("Dutch Formatting Bulk Import", tester.test_dutch_formatting_bulk_import),
         ("Delete Transaction", tester.test_delete_transaction),
         ("Error Handling", tester.test_error_handling)
     ]
