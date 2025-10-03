@@ -2314,6 +2314,7 @@ def main():
     
     # Run all tests
     tests = [
+        ("Dutch Name Extraction and Currency Parsing", tester.test_dutch_name_extraction_and_currency_parsing),
         ("Persoonsnaam Extraction and Enhanced Matching", tester.test_persoonsnaam_extraction_and_matching),
         ("Correcties Suggestions Aggregation Pipeline", tester.test_correcties_suggestions_aggregation_pipeline),
         ("Creditfactuur Category Filtering", tester.test_creditfactuur_particulier_category_filtering),
