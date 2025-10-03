@@ -2306,6 +2306,215 @@ ZV003,17-1-2025,Zilveren Kruis,€ 200,25"""
         
         return all_tests_passed
 
+    def test_bunq_import_dutch_formatting(self):
+        """Test BUNQ import with Dutch currency formatting as requested in review"""
+        print("\n🇳🇱 Testing BUNQ Import Dutch Currency Formatting...")
+        print("   Focus: Test parse_dutch_currency and validate_bunq_row with BUNQ examples")
+        print("   Expected: Negative amounts stay negative, positive stay positive, no abs() conversion")
+        
+        # Test data from the review request - exact BUNQ format
+        bunq_test_data = """datum,bedrag,debiteur,omschrijving
+1-1-2025,€ -89,75,PHYSITRACK* PHYSITRACK,PHYSITRACK* PHYSITRACK +358208301303 GB
+2-1-2025,€ 124,76,VGZ Organisatie BV,Uw ref: 202200008296 Natura decl. 103271663.
+3-1-2025,€ 1.311,03,Grote Betaling BV,Grote inkomsten transactie
+4-1-2025,€ -2.780,03,Grote Uitgave BV,Grote uitgaven transactie"""
+        
+        print(f"   Test scenarios:")
+        print(f"   1. € -89,75 → should become -89.75 (negative expense)")
+        print(f"   2. € 124,76 → should become 124.76 (positive income)")
+        print(f"   3. € 1.311,03 → should become 1311.03 (thousands with positive)")
+        print(f"   4. € -2.780,03 → should become -2780.03 (thousands with negative)")
+        
+        # Test import preview first to see parsing results
+        files = {
+            'file': ('test_bunq_dutch.csv', bunq_test_data, 'text/csv')
+        }
+        data = {
+            'import_type': 'bank_bunq'
+        }
+        
+        url = f"{self.api_url}/import/preview"
+        print(f"   URL: {url}")
+        
+        self.tests_run += 1
+        
+        try:
+            response = requests.post(url, data=data, files=files)
+            
+            if response.status_code == 200:
+                self.tests_passed += 1
+                print(f"✅ BUNQ import preview successful - Status: {response.status_code}")
+                
+                try:
+                    response_data = response.json()
+                    print(f"   📊 Preview Results:")
+                    print(f"     - Total rows: {response_data.get('total_rows', 0)}")
+                    print(f"     - Valid rows: {response_data.get('valid_rows', 0)}")
+                    print(f"     - Error rows: {response_data.get('error_rows', 0)}")
+                    
+                    # Analyze the parsed amounts in preview items
+                    preview_items = response_data.get('preview_items', [])
+                    print(f"\n   🔍 DUTCH CURRENCY PARSING ANALYSIS:")
+                    
+                    expected_amounts = [-89.75, 124.76, 1311.03, -2780.03]
+                    parsing_correct = True
+                    
+                    for i, item in enumerate(preview_items):
+                        mapped_data = item.get('mapped_data', {})
+                        parsed_amount = mapped_data.get('amount', 0)
+                        original_amount = mapped_data.get('original_amount', parsed_amount)
+                        errors = item.get('validation_errors', [])
+                        
+                        print(f"     Row {i+1}:")
+                        print(f"       - Parsed amount: {parsed_amount}")
+                        print(f"       - Original amount: {original_amount}")
+                        print(f"       - Expected: {expected_amounts[i] if i < len(expected_amounts) else 'N/A'}")
+                        print(f"       - Errors: {errors if errors else 'None'}")
+                        
+                        # Check if parsing is correct
+                        if i < len(expected_amounts):
+                            expected = expected_amounts[i]
+                            if abs(parsed_amount - expected) < 0.01:  # Allow small floating point differences
+                                print(f"       ✅ CORRECT: {parsed_amount} matches expected {expected}")
+                            else:
+                                print(f"       ❌ INCORRECT: {parsed_amount} does not match expected {expected}")
+                                parsing_correct = False
+                        
+                        # Check sign preservation
+                        if i < len(expected_amounts):
+                            if expected_amounts[i] < 0 and parsed_amount >= 0:
+                                print(f"       ❌ SIGN ERROR: Expected negative, got positive (abs() conversion detected)")
+                                parsing_correct = False
+                            elif expected_amounts[i] > 0 and parsed_amount <= 0:
+                                print(f"       ❌ SIGN ERROR: Expected positive, got negative")
+                                parsing_correct = False
+                            else:
+                                print(f"       ✅ SIGN CORRECT: Sign preserved properly")
+                    
+                    # Test execution to verify actual import
+                    print(f"\n   ⚡ Testing actual BUNQ import execution...")
+                    
+                    execute_url = f"{self.api_url}/import/execute"
+                    execute_response = requests.post(execute_url, data=data, files={
+                        'file': ('test_bunq_dutch_execute.csv', bunq_test_data, 'text/csv')
+                    })
+                    
+                    if execute_response.status_code == 200:
+                        print(f"   ✅ BUNQ import execution successful")
+                        
+                        try:
+                            execute_data = execute_response.json()
+                            imported_count = execute_data.get('imported_count', 0)
+                            error_count = execute_data.get('error_count', 0)
+                            
+                            print(f"     - Imported: {imported_count} transactions")
+                            print(f"     - Errors: {error_count} transactions")
+                            
+                            if imported_count == 4 and error_count == 0:
+                                print(f"     ✅ All 4 BUNQ transactions imported successfully")
+                            else:
+                                print(f"     ⚠️  Expected 4 imports with 0 errors, got {imported_count} imports with {error_count} errors")
+                            
+                            # Verify imported transactions in database
+                            bank_transactions_response = requests.get(f"{self.api_url}/bank-reconciliation/unmatched")
+                            if bank_transactions_response.status_code == 200:
+                                bank_transactions = bank_transactions_response.json()
+                                
+                                # Find our imported transactions
+                                bunq_transactions = [
+                                    bt for bt in bank_transactions 
+                                    if any(keyword in bt.get('description', '').lower() 
+                                          for keyword in ['physitrack', 'vgz', 'grote'])
+                                ]
+                                
+                                print(f"\n   📋 IMPORTED BUNQ TRANSACTIONS VERIFICATION:")
+                                print(f"     Found {len(bunq_transactions)} BUNQ transactions in database")
+                                
+                                for i, bt in enumerate(bunq_transactions[:4]):
+                                    amount = bt.get('amount', 0)
+                                    description = bt.get('description', 'N/A')
+                                    counterparty = bt.get('counterparty', 'N/A')
+                                    
+                                    print(f"     Transaction {i+1}:")
+                                    print(f"       - Amount: €{amount}")
+                                    print(f"       - Description: {description}")
+                                    print(f"       - Counterparty: {counterparty}")
+                                    
+                                    # Verify amounts match expected values
+                                    if i < len(expected_amounts):
+                                        expected = expected_amounts[i]
+                                        if abs(amount - expected) < 0.01:
+                                            print(f"       ✅ Amount correct: {amount} matches expected {expected}")
+                                        else:
+                                            print(f"       ❌ Amount incorrect: {amount} does not match expected {expected}")
+                                            parsing_correct = False
+                        
+                        except Exception as e:
+                            print(f"     ⚠️  Could not parse execution response: {e}")
+                    
+                    else:
+                        print(f"   ❌ BUNQ import execution failed - Status: {execute_response.status_code}")
+                        try:
+                            error_detail = execute_response.json()
+                            print(f"     Error: {error_detail}")
+                        except:
+                            print(f"     Response: {execute_response.text}")
+                    
+                    # Final assessment
+                    print(f"\n   📊 BUNQ DUTCH FORMATTING TEST RESULTS:")
+                    
+                    if parsing_correct and response_data.get('valid_rows', 0) == 4:
+                        print(f"   ✅ BUNQ DUTCH CURRENCY PARSING WORKING CORRECTLY!")
+                        print(f"   ✅ parse_dutch_currency function handles all test cases:")
+                        print(f"     • € -89,75 → -89.75 ✅")
+                        print(f"     • € 124,76 → 124.76 ✅")
+                        print(f"     • € 1.311,03 → 1311.03 ✅")
+                        print(f"     • € -2.780,03 → -2780.03 ✅")
+                        print(f"   ✅ validate_bunq_row preserves signs correctly")
+                        print(f"   ✅ No abs() conversion detected - negative amounts stay negative")
+                        print(f"   ✅ Positive amounts stay positive")
+                        print(f"   ✅ Thousands separator (.) handled correctly")
+                        print(f"   ✅ Decimal separator (,) handled correctly")
+                        return True
+                    else:
+                        print(f"   ❌ BUNQ DUTCH CURRENCY PARSING HAS ISSUES!")
+                        if not parsing_correct:
+                            print(f"   ❌ Amount parsing incorrect - check parse_dutch_currency function")
+                        if response_data.get('error_rows', 0) > 0:
+                            print(f"   ❌ {response_data.get('error_rows', 0)} rows had validation errors")
+                            errors = response_data.get('all_errors', [])
+                            for error in errors[:5]:
+                                print(f"     • {error}")
+                        print(f"   ❌ Expected all 4 BUNQ transactions to parse correctly")
+                        return False
+                        
+                except Exception as json_error:
+                    print(f"   ⚠️  Could not parse preview response JSON: {json_error}")
+                    print(f"   Raw response: {response.text[:500]}...")
+                    return False
+                    
+            else:
+                print(f"❌ BUNQ import preview failed - Status: {response.status_code}")
+                try:
+                    error_detail = response.json()
+                    print(f"   Error: {error_detail}")
+                    
+                    # Check for specific parsing issues
+                    error_str = str(error_detail).lower()
+                    if "bedrag" in error_str or "amount" in error_str:
+                        print(f"   ❌ CURRENCY PARSING ISSUE: Dutch currency format not handled correctly")
+                    if "datum" in error_str or "date" in error_str:
+                        print(f"   ❌ DATE PARSING ISSUE: Dutch date format not handled correctly")
+                        
+                except:
+                    print(f"   Raw error response: {response.text}")
+                
+                return False
+                
+        except Exception as e:
+            print(f"❌ BUNQ import test failed with exception: {str(e)}")
+            return False
+
 def main():
     print("🏥 Starting Fysiotherapie Cashflow API Tests")
     print("=" * 50)
