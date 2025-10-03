@@ -14,6 +14,10 @@ const CorrectieManager = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Bulk import state
+  const [bulkData, setBulkData] = useState('');
+  const [bulkResult, setBulkResult] = useState(null);
+
   // Form state for creating corrections
   const [correctieForm, setCorrectieForm] = useState({
     correction_type: 'creditfactuur_particulier',
