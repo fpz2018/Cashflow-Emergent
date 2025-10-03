@@ -1868,14 +1868,9 @@ async def import_creditfactuur_particulier(request: CopyPasteImportRequest):
                         from dateutil import parser
                         correction_date = parser.parse(correction_date, dayfirst=True).date()
                 
-                # Extract patient name from debiteur field (everything after the dash)
+                # Extract clean patient name (remove factuurnummer prefix)
                 debiteur = correction_data.get('debiteur', '')
-                patient_name = ''
-                if '-' in debiteur:
-                    # Split on dash and take everything after it, strip whitespace
-                    patient_name = debiteur.split('-', 1)[1].strip()
-                else:
-                    patient_name = debiteur
+                patient_name = extract_clean_name(debiteur)
                 
                 # Create correction object
                 correction = Correction(
