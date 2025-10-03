@@ -1251,14 +1251,35 @@ PART003,2025-01-17,Piet Bakker,95.75"""
                         particulier_count > 0 and zorgverzekeraar_count == 0  # Category filtering
                     )
                     
-                    print(f"\n   📋 DETAILED ANALYSIS:")
-                    print(f"   ✅ Return limit increased: {len(suggestions)} suggestions (was 5, now 20)")
-                    print(f"   ✅ Category filtering working: Only particulier transactions returned")
-                    print(f"   ❌ CRITICAL BUG FOUND: Algorithm only returns matches from January")
-                    print(f"   ❌ Expected: Matches from August 2025 (correction date: 2025-08-20)")
-                    print(f"   ❌ Actual: All matches from January 2025 with 200+ day differences")
-                    print(f"   ❌ Root cause: Database query not ordered, returns first 50 random matches")
-                    print(f"   ❌ Should return August matches with scores 69-70, not January with score 53")
+                    print(f"\n   📋 AGGREGATION PIPELINE ANALYSIS:")
+                    print(f"   Testing correction dated 2025-08-20 with €48.5 amount")
+                    print(f"   Expected: August/September matches first (higher scores), then July, then older months")
+                    print(f"   Pipeline should sort by date DESC (newest first), then amount ASC")
+                    
+                    # Analyze if we're getting the expected date distribution
+                    august_matches = sum(1 for s in suggestions if s.get('date', '').startswith('2025-08'))
+                    september_matches = sum(1 for s in suggestions if s.get('date', '').startswith('2025-09'))
+                    july_matches = sum(1 for s in suggestions if s.get('date', '').startswith('2025-07'))
+                    january_matches = sum(1 for s in suggestions if s.get('date', '').startswith('2025-01'))
+                    
+                    print(f"   📊 Date distribution in results:")
+                    print(f"     - August 2025: {august_matches} matches")
+                    print(f"     - September 2025: {september_matches} matches")
+                    print(f"     - July 2025: {july_matches} matches")
+                    print(f"     - January 2025: {january_matches} matches")
+                    
+                    # Check if aggregation pipeline is working correctly
+                    recent_matches = august_matches + september_matches + july_matches
+                    pipeline_working = recent_matches > january_matches and len(suggestions) > 5
+                    
+                    if pipeline_working:
+                        print(f"   ✅ AGGREGATION PIPELINE WORKING: More recent matches ({recent_matches}) than old ones ({january_matches})")
+                        print(f"   ✅ Date sorting appears to work: Newer dates prioritized")
+                        print(f"   ✅ Pipeline returns {len(suggestions)} suggestions (increased from 5)")
+                    else:
+                        print(f"   ❌ AGGREGATION PIPELINE ISSUE: Still getting more old matches than recent ones")
+                        print(f"   ❌ Expected: August/September matches first due to date proximity")
+                        print(f"   ❌ Actual: {january_matches} January vs {recent_matches} recent matches")
                     
                     if improvements_working:
                         print(f"\n   ✅ SUGGESTIONS ENDPOINT IMPROVEMENTS ARE WORKING!")
