@@ -119,7 +119,8 @@ const DataSetup = () => {
 
   const sections = [
     { id: 'banksaldo', label: 'Bank Saldo', icon: 'bank' },
-    { id: 'omzet', label: 'Overige Omzet', icon: 'plus' }
+    { id: 'omzet', label: 'Overige Omzet', icon: 'plus' },
+    { id: 'correcties', label: 'Correcties', icon: 'edit' }
   ];
 
   const getIcon = (iconName) => {
