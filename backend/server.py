@@ -1897,7 +1897,18 @@ async def import_creditdeclaratie_verzekeraar(request: CopyPasteImportRequest):
             try:
                 correction_date = correction_data.get('datum')
                 if isinstance(correction_date, str):
-                    correction_date = datetime.strptime(correction_date, "%Y-%m-%d").date()
+                    # Try different date formats
+                    date_formats = ["%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%Y/%m/%d"]
+                    for date_format in date_formats:
+                        try:
+                            correction_date = datetime.strptime(correction_date, date_format).date()
+                            break
+                        except ValueError:
+                            continue
+                    else:
+                        # If no format worked, try parsing with dateutil
+                        from dateutil import parser
+                        correction_date = parser.parse(correction_date, dayfirst=True).date()
                 
                 correction = Correction(
                     correction_type="creditdeclaratie_verzekeraar",
@@ -1972,7 +1983,18 @@ async def import_correctiefactuur_verzekeraar(request: CopyPasteImportRequest):
             try:
                 correction_date = correction_data.get('datum')
                 if isinstance(correction_date, str):
-                    correction_date = datetime.strptime(correction_date, "%Y-%m-%d").date()
+                    # Try different date formats
+                    date_formats = ["%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%Y/%m/%d"]
+                    for date_format in date_formats:
+                        try:
+                            correction_date = datetime.strptime(correction_date, date_format).date()
+                            break
+                        except ValueError:
+                            continue
+                    else:
+                        # If no format worked, try parsing with dateutil
+                        from dateutil import parser
+                        correction_date = parser.parse(correction_date, dayfirst=True).date()
                 
                 correctie_bedrag = abs(parse_dutch_currency(correction_data.get('bedrag', '0')))
                 
