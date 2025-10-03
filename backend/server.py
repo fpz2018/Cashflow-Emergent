@@ -1805,9 +1805,10 @@ async def import_creditfactuur_particulier(request: CopyPasteImportRequest):
                 
                 # Try automatic matching
                 if correction.original_invoice_number:
-                    # Find original transaction by invoice number
+                    # Find original transaction by invoice number - ONLY particuliere facturen
                     original = await db.transactions.find_one({
-                        "invoice_number": correction.original_invoice_number
+                        "invoice_number": correction.original_invoice_number,
+                        "category": "particulier"  # ONLY match particuliere facturen
                     })
                     
                     if original:
