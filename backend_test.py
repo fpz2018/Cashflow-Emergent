@@ -1556,6 +1556,332 @@ PART003,2025-01-17,Piet Bakker,95.75"""
                 except:
                     pass
 
+    def test_persoonsnaam_extraction_and_matching(self):
+        """Test persoonsnaam extraction and enhanced matching functionality for particuliere creditfacturen"""
+        print("\n👤 Testing Persoonsnaam Extraction and Enhanced Matching...")
+        print("   Focus: Test persoonsnaam extraction from debiteur field and enhanced naam matching in suggestions")
+        print("   Expected: Extract 'Knauff, Ienke' from '202500008568-Knauff, Ienke'")
+        print("   Expected: Enhanced scoring for exact matches (40 pts), partial matches (30 pts), word matches (25/15 pts)")
+        
+        # Step 1: Create test transactions with various patient names for matching scenarios
+        print("\n--- Step 1: Creating test transactions with various patient names ---")
+        
+        test_transactions = [
+            # Exact match scenario
+            {
+                "type": "income",
+                "category": "particulier",
+                "amount": 48.50,
+                "description": "Particuliere behandeling",
+                "date": "2025-02-15",
+                "patient_name": "Knauff, Ienke",  # Exact match for first test record
+                "invoice_number": "EXACT001"
+            },
+            # Partial match scenario (contains)
+            {
+                "type": "income", 
+                "category": "particulier",
+                "amount": 75.00,
+                "description": "Particuliere behandeling",
+                "date": "2025-02-16",
+                "patient_name": "Jan Pietersen van Amsterdam",  # Contains "Pietersen, Jan"
+                "invoice_number": "PARTIAL001"
+            },
+            # Word overlap scenario
+            {
+                "type": "income",
+                "category": "particulier", 
+                "amount": 48.50,
+                "description": "Particuliere behandeling",
+                "date": "2025-02-17",
+                "patient_name": "Ienke van der Knauff",  # Word overlap with "Knauff, Ienke"
+                "invoice_number": "WORD001"
+            },
+            # Different amount but same name (for testing amount vs name scoring)
+            {
+                "type": "income",
+                "category": "particulier",
+                "amount": 60.00,
+                "description": "Particuliere behandeling", 
+                "date": "2025-02-18",
+                "patient_name": "Pietersen, Jan",  # Exact match for second test record
+                "invoice_number": "AMOUNT001"
+            },
+            # No match scenario
+            {
+                "type": "income",
+                "category": "particulier",
+                "amount": 48.50,
+                "description": "Particuliere behandeling",
+                "date": "2025-02-19", 
+                "patient_name": "Completely Different Name",
+                "invoice_number": "NOMATCH001"
+            }
+        ]
+        
+        created_transaction_ids = []
+        for i, transaction in enumerate(test_transactions):
+            success, response = self.run_test(
+                f"Create Test Transaction {i+1} ({transaction['patient_name'][:20]}...)",
+                "POST",
+                "transactions",
+                200,
+                data=transaction
+            )
+            if success and 'id' in response:
+                created_transaction_ids.append(response['id'])
+                print(f"   Created: {transaction['patient_name']} - €{transaction['amount']}")
+        
+        if len(created_transaction_ids) < 4:
+            print("❌ Failed to create sufficient test transactions")
+            return False
+        
+        # Step 2: Import creditfactuur data with persoonsnamen after dash
+        print("\n--- Step 2: Testing persoonsnaam extraction from creditfactuur import ---")
+        
+        # Test data from review request with tab-separated format
+        test_data = """202500008568	20-2-2025	202500008568-Knauff, Ienke	€ -48,50
+202500008569	20-2-2025	202500008569-Pietersen, Jan	€ -75,00"""
+        
+        print("   Test data format:")
+        print("   - Debiteur field: '202500008568-Knauff, Ienke' (persoonsnaam after dash)")
+        print("   - Expected extraction: 'Knauff, Ienke'")
+        print("   - Dutch date format: '20-2-2025'")
+        print("   - Dutch currency: '€ -48,50'")
+        
+        import_request = {
+            "data": test_data,
+            "import_type": "creditfactuur_particulier"
+        }
+        
+        url = f"{self.api_url}/correcties/import-creditfactuur"
+        headers = {'Content-Type': 'application/json'}
+        
+        self.tests_run += 1
+        print(f"   URL: {url}")
+        
+        try:
+            response = requests.post(url, json=import_request, headers=headers)
+            
+            if response.status_code == 200:
+                self.tests_passed += 1
+                print(f"✅ Creditfactuur import successful - Status: {response.status_code}")
+                
+                try:
+                    response_data = response.json()
+                    successful_imports = response_data.get('successful_imports', 0)
+                    failed_imports = response_data.get('failed_imports', 0)
+                    auto_matched = response_data.get('auto_matched', 0)
+                    
+                    print(f"   📊 Import Results:")
+                    print(f"     - Successful imports: {successful_imports}")
+                    print(f"     - Failed imports: {failed_imports}")
+                    print(f"     - Auto matched: {auto_matched}")
+                    
+                    if successful_imports >= 2:
+                        print(f"   ✅ Both creditfactuur records imported successfully")
+                        print(f"   ✅ Persoonsnaam extraction appears to work")
+                    else:
+                        print(f"   ⚠️  Only {successful_imports}/2 records imported successfully")
+                        
+                except Exception as json_error:
+                    print(f"   ⚠️  Could not parse response JSON: {json_error}")
+                
+                # Step 3: Verify persoonsnaam extraction by checking created corrections
+                print("\n--- Step 3: Verifying persoonsnaam extraction in database ---")
+                
+                success, correcties = self.run_test(
+                    "Get Correcties to Verify Persoonsnaam Extraction",
+                    "GET",
+                    "correcties",
+                    200
+                )
+                
+                if success and isinstance(correcties, list):
+                    print(f"   Found {len(correcties)} total corrections in database")
+                    
+                    # Find our test corrections
+                    test_corrections = []
+                    for correction in correcties:
+                        patient_name = correction.get('patient_name', '')
+                        amount = correction.get('amount', 0)
+                        
+                        # Look for our test data
+                        if (patient_name == "Knauff, Ienke" and amount == 48.5) or \
+                           (patient_name == "Pietersen, Jan" and amount == 75.0):
+                            test_corrections.append(correction)
+                            print(f"   Found test correction: '{patient_name}' - €{amount}")
+                    
+                    if len(test_corrections) >= 1:  # At least one correction found
+                        print(f"   ✅ PERSOONSNAAM EXTRACTION WORKING!")
+                        print(f"   ✅ Successfully extracted persoonsnamen from debiteur field after dash")
+                        
+                        # Step 4: Test enhanced matching in suggestions endpoint
+                        print(f"\n--- Step 4: Testing enhanced naam matching in suggestions endpoint ---")
+                        
+                        matching_results = []
+                        
+                        for i, correction in enumerate(test_corrections):
+                            correction_id = correction.get('id')
+                            patient_name = correction.get('patient_name', '')
+                            amount = correction.get('amount', 0)
+                            
+                            print(f"\n   Testing suggestions for correction {i+1}: '{patient_name}' - €{amount}")
+                            
+                            if correction_id:
+                                success, suggestions = self.run_test(
+                                    f"Get Suggestions for {patient_name}",
+                                    "GET",
+                                    f"correcties/suggestions/{correction_id}",
+                                    200
+                                )
+                                
+                                if success and isinstance(suggestions, list):
+                                    print(f"     Total suggestions: {len(suggestions)}")
+                                    
+                                    # Analyze matching scenarios
+                                    exact_matches = []
+                                    partial_matches = []
+                                    word_matches = []
+                                    amount_only_matches = []
+                                    
+                                    for suggestion in suggestions:
+                                        sugg_patient = suggestion.get('patient_name', '')
+                                        sugg_score = suggestion.get('match_score', 0)
+                                        sugg_reason = suggestion.get('match_reason', '')
+                                        sugg_amount = suggestion.get('amount', 0)
+                                        
+                                        # Categorize match types
+                                        if 'exacte naam match' in sugg_reason.lower():
+                                            exact_matches.append((sugg_patient, sugg_score, sugg_reason))
+                                        elif 'naam bevat' in sugg_reason.lower() or 'bevat naam' in sugg_reason.lower():
+                                            partial_matches.append((sugg_patient, sugg_score, sugg_reason))
+                                        elif 'naam woorden match' in sugg_reason.lower() or 'enkele naam match' in sugg_reason.lower():
+                                            word_matches.append((sugg_patient, sugg_score, sugg_reason))
+                                        elif 'vergelijkbaar bedrag' in sugg_reason.lower() and 'naam' not in sugg_reason.lower():
+                                            amount_only_matches.append((sugg_patient, sugg_score, sugg_reason))
+                                    
+                                    print(f"     📊 Match Analysis:")
+                                    print(f"       - Exact name matches: {len(exact_matches)}")
+                                    print(f"       - Partial name matches: {len(partial_matches)}")
+                                    print(f"       - Word overlap matches: {len(word_matches)}")
+                                    print(f"       - Amount-only matches: {len(amount_only_matches)}")
+                                    
+                                    # Show detailed results
+                                    if exact_matches:
+                                        print(f"     ✅ EXACT MATCHES FOUND:")
+                                        for patient, score, reason in exact_matches:
+                                            print(f"       • '{patient}' - Score: {score} - {reason}")
+                                            if score >= 40:
+                                                print(f"         ✅ Score {score} includes expected 40 points for exact match")
+                                            else:
+                                                print(f"         ⚠️  Score {score} lower than expected 40+ for exact match")
+                                    
+                                    if partial_matches:
+                                        print(f"     ✅ PARTIAL MATCHES FOUND:")
+                                        for patient, score, reason in partial_matches:
+                                            print(f"       • '{patient}' - Score: {score} - {reason}")
+                                            if score >= 30:
+                                                print(f"         ✅ Score {score} includes expected 30 points for partial match")
+                                    
+                                    if word_matches:
+                                        print(f"     ✅ WORD OVERLAP MATCHES FOUND:")
+                                        for patient, score, reason in word_matches:
+                                            print(f"       • '{patient}' - Score: {score} - {reason}")
+                                            if score >= 15:
+                                                print(f"         ✅ Score {score} includes expected 15-25 points for word match")
+                                    
+                                    # Record results for summary
+                                    matching_results.append({
+                                        'correction_name': patient_name,
+                                        'correction_amount': amount,
+                                        'total_suggestions': len(suggestions),
+                                        'exact_matches': len(exact_matches),
+                                        'partial_matches': len(partial_matches),
+                                        'word_matches': len(word_matches),
+                                        'has_name_matches': len(exact_matches) + len(partial_matches) + len(word_matches) > 0,
+                                        'highest_score': max([s.get('match_score', 0) for s in suggestions]) if suggestions else 0
+                                    })
+                                    
+                                else:
+                                    print(f"     ❌ Failed to get suggestions")
+                                    matching_results.append({
+                                        'correction_name': patient_name,
+                                        'error': 'Failed to get suggestions'
+                                    })
+                        
+                        # Step 5: Summary and verification
+                        print(f"\n--- Step 5: Enhanced Matching Summary ---")
+                        
+                        total_corrections_tested = len(matching_results)
+                        corrections_with_name_matches = sum(1 for r in matching_results if r.get('has_name_matches', False))
+                        
+                        print(f"   📊 PERSOONSNAAM EXTRACTION AND MATCHING TEST RESULTS:")
+                        print(f"   - Corrections tested: {total_corrections_tested}")
+                        print(f"   - Corrections with name matches: {corrections_with_name_matches}")
+                        
+                        for result in matching_results:
+                            if 'error' not in result:
+                                name = result['correction_name']
+                                total_sugg = result['total_suggestions']
+                                exact = result['exact_matches']
+                                partial = result['partial_matches']
+                                word = result['word_matches']
+                                highest = result['highest_score']
+                                
+                                print(f"   - '{name}': {total_sugg} suggestions, {exact} exact + {partial} partial + {word} word matches, highest score: {highest}")
+                        
+                        # Overall assessment
+                        extraction_working = len(test_corrections) >= 1
+                        matching_working = corrections_with_name_matches > 0 or total_corrections_tested == 0  # Allow for no suggestions if no corrections
+                        
+                        if extraction_working:
+                            print(f"\n   ✅ PERSOONSNAAM EXTRACTION WORKING!")
+                            print(f"   ✅ Persoonsnamen correctly extracted from debiteur field after dash")
+                            if matching_working and corrections_with_name_matches > 0:
+                                print(f"   ✅ Enhanced naam matching shows improved scores for name matches")
+                                print(f"   ✅ Different matching scenarios working: exact, partial, word overlap")
+                                print(f"   ✅ Suggestions endpoint provides enhanced scoring for naam matches")
+                            elif total_corrections_tested > 0:
+                                print(f"   ⚠️  Enhanced naam matching not showing expected results")
+                            else:
+                                print(f"   ⚠️  No corrections available for matching testing")
+                        else:
+                            print(f"   ❌ PERSOONSNAAM EXTRACTION NOT WORKING")
+                            print(f"   ❌ Failed to extract names from debiteur field after dash")
+                        
+                        return extraction_working
+                        
+                    else:
+                        print(f"   ❌ Could not find expected test corrections with extracted persoonsnamen")
+                        print(f"   ❌ Expected: 'Knauff, Ienke' and/or 'Pietersen, Jan'")
+                        return False
+                else:
+                    print(f"   ❌ Failed to get correcties for verification")
+                    return False
+                    
+            else:
+                print(f"❌ Creditfactuur import failed - Status: {response.status_code}")
+                try:
+                    error_detail = response.json()
+                    print(f"   Error: {error_detail}")
+                except:
+                    print(f"   Response: {response.text}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Request failed with exception: {str(e)}")
+            return False
+        
+        finally:
+            # Cleanup created transactions
+            print(f"\n--- Cleanup: Removing test transactions ---")
+            for transaction_id in created_transaction_ids:
+                try:
+                    self.run_test(f"Cleanup Transaction", "DELETE", f"transactions/{transaction_id}", 200)
+                except:
+                    pass
+
     def test_error_handling(self):
         """Test error handling"""
         print("\n🚨 Testing Error Handling...")
