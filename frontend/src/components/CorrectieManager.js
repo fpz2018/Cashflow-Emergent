@@ -176,7 +176,8 @@ const CorrectieManager = () => {
       }
 
       const response = await axios.post(`${API}/correcties/${endpoint}`, {
-        data: bulkData
+        data: bulkData,
+        import_type: 'correcties'
       });
 
       setBulkResult(response.data);
