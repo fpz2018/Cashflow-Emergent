@@ -1961,10 +1961,11 @@ async def import_correctiefactuur_verzekeraar(request: CopyPasteImportRequest):
                         correction.matched = True
                         auto_matched += 1
                         
-                        # Set to corrected amount
+                        # Subtract correction amount
+                        corrected_amount = original['amount'] - correctie_bedrag
                         await db.transactions.update_one(
                             {"id": original['id']},
-                            {"$set": {"amount": gecorrigeerd}}
+                            {"$set": {"amount": corrected_amount}}
                         )
                 
                 correction_dict = prepare_for_mongo(correction.dict())
