@@ -183,6 +183,18 @@
           agent: "testing"
           comment: "MONGODB AGGREGATION PIPELINE SUCCESSFULLY IMPLEMENTED AND TESTED ✅ /api/correcties/suggestions/{correctie_id} endpoint now uses aggregation pipeline instead of simple find() query ✅ Pipeline implementation: Lines 1715-1751 in server.py ✅ PIPELINE STAGES: 1) $match with amount tolerance and category filtering 2) $addFields for date processing 3) $sort by date DESC (newest first), then amount ASC 4) $limit to 50 results ✅ COMPREHENSIVE TESTING COMPLETED: Created test correction dated 2025-08-20 with €48.5 amount, tested against transactions from different months ✅ RESULTS VERIFICATION: 20 suggestions returned (increased from 5), all from August/September 2025 (recent months), no January matches, scores 64-69 with proper date proximity scoring ✅ DATE DISTRIBUTION: August 2025: 3 matches, September 2025: 17 matches, January 2025: 0 matches ✅ CATEGORY FILTERING: Only particulier transactions returned (zorgverzekeraar excluded) ✅ SORTING VERIFICATION: Top suggestions are August matches (7 days from correction date) with score 69, followed by September matches (14 days) with score 67 ✅ USER COMPLAINT RESOLVED: No longer shows 'only January matches' - now shows relevant matches from correct months with proper date-based scoring ✅ AGGREGATION PIPELINE WORKING PERFECTLY: Sorts by date DESC, prioritizes recent matches, applies category filtering, returns distributed results across months"
 
+  - task: "Persoonsnaam extraction and enhanced matching voor particuliere creditfacturen"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "PERSOONSNAAM EXTRACTION AND ENHANCED MATCHING TESTING COMPLETED ✅ /api/correcties/import-creditfactuur correctly extracts persoonsnamen from debiteur field after dash ✅ Test data: '202500008568-Knauff, Ienke' successfully extracts 'Knauff, Ienke' ✅ Test data: '202500008569-Pietersen, Jan' successfully extracts 'Pietersen, Jan' ✅ Dutch formatting works: 20-2-2025 date format and € -48,50 currency format parsed correctly ✅ Database storage: Corrections stored with correct patient_name field containing extracted names ✅ Import results: 2/2 records imported successfully, 1 auto-matched ✅ Enhanced matching logic implemented in suggestions endpoint (lines 1771-1802) ✅ Scoring system: Exact matches (40 points), partial matches (30 points), word overlap matches (25/15 points) ✅ /api/correcties/suggestions/{correctie_id} endpoint returns suggestions with enhanced naam matching ✅ Suggestions endpoint tested with extracted names, returns 20 suggestions with proper scoring ✅ Category filtering ensures only particulier transactions are matched ✅ CONCLUSION: Persoonsnaam extraction from debiteur field working correctly, enhanced matching logic implemented and functional"
+
 ## frontend:
   - task: "Bank reconciliation UI voor crediteur matching"
     implemented: true
