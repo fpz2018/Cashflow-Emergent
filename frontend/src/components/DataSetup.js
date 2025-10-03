@@ -450,6 +450,11 @@ const DataSetup = () => {
           </div>
         </div>
       )}
+
+      {/* Correcties Section */}
+      {activeSection === 'correcties' && (
+        <CorrectieManager />
+      )}
     </div>
   );
 };
