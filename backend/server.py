@@ -1707,18 +1707,48 @@ async def get_correction_suggestions(correctie_id: str):
         elif correctie.get('correction_type') in ['creditdeclaratie_verzekeraar', 'correctiefactuur_verzekeraar']:
             search_category = "zorgverzekeraar"
         
-        # Build query with category filter
-        query = {
-            "amount": {
-                "$gte": correction_amount - tolerance,
-                "$lte": correction_amount + tolerance + 1000  # Allow for larger original amounts
-            }
-        }
+        # Use aggregation pipeline to get better distributed results
+        correction_date_obj = datetime.fromisoformat(correctie['date']).date() if isinstance(correctie['date'], str) else correctie['date']
+        correction_date_timestamp = datetime.combine(correction_date_obj, datetime.min.time()).timestamp()
         
+        # Build aggregation pipeline
+        pipeline = [
+            {
+                "$match": {
+                    "amount": {
+                        "$gte": correction_amount - tolerance,
+                        "$lte": correction_amount + tolerance + 1000
+                    }
+                }
+            }
+        ]
+        
+        # Add category filter if specified
         if search_category:
-            query["category"] = search_category
+            pipeline[0]["$match"]["category"] = search_category
             
-        similar_transactions = await db.transactions.find(query).to_list(50)
+        # Add computed fields for better sorting
+        pipeline.extend([
+            {
+                "$addFields": {
+                    "date_timestamp": {
+                        "$dateToString": {"format": "%Y-%m-%d", "date": {"$dateFromString": {"dateString": "$date"}}}
+                    }
+                }
+            },
+            {
+                "$sort": {
+                    "date": -1,  # Sort by date descending (newest first)
+                    "amount": 1   # Then by amount ascending (smaller amounts first for better matches)
+                }
+            },
+            {
+                "$limit": 50
+            }
+        ])
+        
+        # Execute aggregation
+        similar_transactions = await db.transactions.aggregate(pipeline).to_list(50)
         
         for transaction in similar_transactions:
             score = 0
