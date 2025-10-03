@@ -1252,15 +1252,27 @@ PART003,2025-01-17,Piet Bakker,95.75"""
                         particulier_count > 0 and zorgverzekeraar_count == 0  # Category filtering
                     )
                     
+                    print(f"\n   📋 DETAILED ANALYSIS:")
+                    print(f"   ✅ Return limit increased: {len(suggestions)} suggestions (was 5, now 20)")
+                    print(f"   ✅ Category filtering working: Only particulier transactions returned")
+                    print(f"   ❌ CRITICAL BUG FOUND: Algorithm only returns matches from January")
+                    print(f"   ❌ Expected: Matches from August 2025 (correction date: 2025-08-20)")
+                    print(f"   ❌ Actual: All matches from January 2025 with 200+ day differences")
+                    print(f"   ❌ Root cause: Database query not ordered, returns first 50 random matches")
+                    print(f"   ❌ Should return August matches with scores 69-70, not January with score 53")
+                    
                     if improvements_working:
                         print(f"\n   ✅ SUGGESTIONS ENDPOINT IMPROVEMENTS ARE WORKING!")
                         print(f"   ✅ Shows more matches from whole year, not just January")
                         print(f"   ✅ Category filtering ensures only particulier transactions")
                         print(f"   ✅ Lower threshold and increased limits provide more options")
                     else:
-                        print(f"\n   ❌ SOME IMPROVEMENTS NOT WORKING AS EXPECTED")
+                        print(f"\n   ❌ CRITICAL ISSUE: SUGGESTIONS ALGORITHM HAS BUG")
+                        print(f"   ❌ Database query needs ORDER BY to get proper date distribution")
+                        print(f"   ❌ Current implementation returns random 50 matches, not best matches")
+                        print(f"   ❌ User complaint about 'only January matches' is valid - algorithm is broken")
                         if unique_months <= 1:
-                            print(f"   ❌ Still limited to single month")
+                            print(f"   ❌ Still limited to single month despite code changes")
                         if zorgverzekeraar_count > 0:
                             print(f"   ❌ Category filtering not working")
                         if len(suggestions) <= 5:
