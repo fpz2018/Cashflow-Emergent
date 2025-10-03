@@ -168,6 +168,18 @@
           agent: "testing"
           comment: "CATEGORY FILTERING TEST COMPLETED ✅ Verified /api/correcties/import-creditfactuur ONLY matches transactions with category: 'particulier' ✅ Test scenario: Created identical transactions with 'particulier' and 'zorgverzekeraar' categories (same patient name, amount) ✅ Creditfactuur import correctly matched ONLY the particulier transaction ✅ Did NOT match the zorgverzekeraar transaction despite identical data ✅ Invoice number matching: Lines 1809-1812 filter on category: 'particulier' ✅ Patient name matching: Lines 1829-1833 filter on category: 'particulier' ✅ Auto-matching success: 1/1 imports matched correctly ✅ Verified matched transaction category and invoice number ✅ Test data: TEST001, 2025-01-15, Test Patiënt, € -50,00 ✅ CONCLUSION: Category filtering logic is working correctly - creditfactuur particulier ONLY matches particulier transactions, NOT zorgverzekeraar transactions"
 
+  - task: "Correcties suggestions endpoint database query optimization"
+    implemented: false
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "CRITICAL BUG DISCOVERED ❌ /api/correcties/suggestions/{correctie_id} endpoint has fundamental flaw in database query ❌ Line 1721: 'await db.transactions.find(query).to_list(50)' lacks ORDER BY clause ❌ Returns random 50 matches instead of best scoring matches ❌ User complaint 'only January matches' is valid - algorithm returns wrong transactions ❌ EVIDENCE: Correction dated 2025-08-20 should return August matches (scores 69-70) but returns January matches (score 53) ❌ DATABASE ANALYSIS: 201 matching transactions exist across all months, but query returns first 50 random ones ❌ IMPACT: Despite code improvements (threshold 20, limit 20, category filtering), users still see irrelevant matches ❌ SOLUTION NEEDED: Add ORDER BY date DESC or implement proper scoring-based selection in database query ❌ Current improvements (return limit, category filter, threshold) work correctly but are undermined by poor data selection"
+
 ## frontend:
   - task: "Bank reconciliation UI voor crediteur matching"
     implemented: true
