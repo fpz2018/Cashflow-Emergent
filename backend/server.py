@@ -1865,11 +1865,11 @@ async def import_creditdeclaratie_verzekeraar(request: CopyPasteImportRequest):
                 
                 correction = Correction(
                     correction_type="creditdeclaratie_verzekeraar",
-                    original_invoice_number=correction_data.get('declaratienummer', ''),
-                    amount=float(correction_data.get('bedrag', 0)),
-                    description=f"{correction_data.get('reden', '')} - {correction_data.get('zorgverzekeraar', '')}",
+                    original_invoice_number=correction_data.get('factuur_origineel', ''),
+                    amount=abs(float(correction_data.get('bedrag', 0))),  # Make positive
+                    description=f"Creditdeclaratie {correction_data.get('factuur', '')} - {correction_data.get('verzekeraar', '')}",
                     date=correction_date,
-                    patient_name=correction_data.get('patient', '')
+                    patient_name=''
                 )
                 
                 # Try automatic matching by declaration number
