@@ -1742,29 +1742,16 @@ async def import_creditfactuur_particulier(request: CopyPasteImportRequest):
         corrections, errors = parse_copy_paste_data(request.data, expected_columns)
         
         if not corrections and errors:
-            raise HTTPException(status_code=400, detail=f"Geen geldige correcties gevonden. Fouten: {'; '.join(errors[:3])}")
+            raise HTTPException(status_code=400, detail=f"Geen geldige creditfacturen gevonden. Fouten: {'; '.join(errors[:3])}")
         
-        # Process each correction
+        # Process each creditfactuur
         successful_imports = 0
         failed_imports = []
         auto_matched = 0
         
         for i, correction_data in enumerate(corrections):
             try:
-                # Validate correction type
-                correction_type = correction_data.get('type', '').lower()
-                if 'creditfactuur' in correction_type and 'particulier' in correction_type:
-                    correction_type = "creditfactuur_particulier"
-                elif 'creditdeclaratie' in correction_type:
-                    correction_type = "creditdeclaratie_verzekeraar"  
-                elif 'correctiefactuur' in correction_type:
-                    correction_type = "correctiefactuur_verzekeraar"
-                else:
-                    # Default based on keywords
-                    if any(word in correction_data.get('beschrijving', '').lower() for word in ['particulier', 'privé']):
-                        correction_type = "creditfactuur_particulier"
-                    else:
-                        correction_type = "creditdeclaratie_verzekeraar"
+                correction_type = "creditfactuur_particulier"
                 
                 # Parse date
                 correction_date = correction_data.get('datum')
