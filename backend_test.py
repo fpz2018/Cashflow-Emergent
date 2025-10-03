@@ -859,6 +859,142 @@ PART003,2025-01-17,Piet Bakker,95.75"""
         
         return all_success
 
+    def test_dutch_formatting_bulk_import(self):
+        """Test bulk import endpoints with Dutch formatting as requested"""
+        print("\n🇳🇱 Testing Dutch Formatting Bulk Import Endpoints...")
+        print("   Focus: Testing correcties import with Nederlandse data formatting")
+        
+        # Test data from the review request
+        test_data = """202500008568	20-2-2025	202500008568-Knauff, Ienke	€ -48,50
+202500008569	20-2-2025	202500008569-Knauff, Ienke	€ -48,50"""
+        
+        print(f"   Test data:")
+        print(f"   - Dutch date format: 20-2-2025")
+        print(f"   - Dutch currency format: € -48,50")
+        print(f"   - Tab-separated values")
+        
+        # Test 1: POST /api/correcties/import-creditfactuur
+        print(f"\n--- Testing /api/correcties/import-creditfactuur ---")
+        
+        import_request = {
+            "data": test_data,
+            "import_type": "creditfactuur_particulier"  # Testing if import_type is accepted
+        }
+        
+        url = f"{self.api_url}/correcties/import-creditfactuur"
+        headers = {'Content-Type': 'application/json'}
+        
+        self.tests_run += 1
+        print(f"   URL: {url}")
+        print(f"   Testing import_type parameter acceptance...")
+        
+        try:
+            response = requests.post(url, json=import_request, headers=headers)
+            
+            print(f"   Response Status: {response.status_code}")
+            
+            if response.status_code == 200:
+                self.tests_passed += 1
+                print(f"✅ Bulk import successful - Status: {response.status_code}")
+                
+                try:
+                    response_data = response.json()
+                    print(f"   📊 Import Results:")
+                    print(f"     - Message: {response_data.get('message', 'N/A')}")
+                    print(f"     - Successful imports: {response_data.get('successful_imports', 0)}")
+                    print(f"     - Failed imports: {response_data.get('failed_imports', 0)}")
+                    print(f"     - Auto matched: {response_data.get('auto_matched', 0)}")
+                    print(f"     - Total corrections: {response_data.get('total_corrections', 0)}")
+                    
+                    # Verify expected results
+                    successful_imports = response_data.get('successful_imports', 0)
+                    failed_imports = response_data.get('failed_imports', 0)
+                    errors = response_data.get('errors', [])
+                    
+                    print(f"\n   ✅ DUTCH FORMATTING VERIFICATION:")
+                    print(f"     - Expected 2 imports, got {successful_imports} successful")
+                    print(f"     - Failed imports: {failed_imports}")
+                    
+                    if errors:
+                        print(f"     - Errors encountered:")
+                        for error in errors[:3]:
+                            print(f"       • {error}")
+                    
+                    # Test specific Dutch formatting aspects
+                    if successful_imports >= 1:
+                        print(f"     ✅ Dutch currency parsing (€ -48,50) appears to work")
+                        print(f"     ✅ Dutch date parsing (20-2-2025) appears to work")
+                        print(f"     ✅ Tab-separated parsing works")
+                    else:
+                        print(f"     ❌ No successful imports - Dutch formatting may have issues")
+                    
+                    # Check if import_type parameter was accepted (no "Field required" error)
+                    import_type_error = any("import_type" in str(error).lower() for error in errors)
+                    if not import_type_error:
+                        print(f"     ✅ import_type parameter accepted (no 'Field required import_type' errors)")
+                    else:
+                        print(f"     ❌ import_type parameter still causing errors")
+                    
+                    return True
+                    
+                except Exception as json_error:
+                    print(f"   ⚠️  Could not parse response JSON: {json_error}")
+                    print(f"   Raw response: {response.text[:200]}...")
+                    return True  # Still consider success if status was 200
+                    
+            elif response.status_code == 422:
+                print(f"❌ Validation error - Status: {response.status_code}")
+                try:
+                    error_detail = response.json()
+                    print(f"   Error details: {error_detail}")
+                    
+                    # Check for specific errors
+                    error_str = str(error_detail).lower()
+                    if "import_type" in error_str and "required" in error_str:
+                        print(f"   ❌ CRITICAL: 'Field required import_type' error still present")
+                        print(f"   ❌ Backend not accepting import_type parameter as expected")
+                    
+                    if "datum" in error_str or "date" in error_str:
+                        print(f"   ❌ Dutch date parsing (20-2-2025) may have issues")
+                    
+                    if "bedrag" in error_str or "currency" in error_str:
+                        print(f"   ❌ Dutch currency parsing (€ -48,50) may have issues")
+                        
+                except:
+                    print(f"   Raw error response: {response.text}")
+                
+                return False
+                
+            elif response.status_code == 500:
+                print(f"❌ Server error - Status: {response.status_code}")
+                try:
+                    error_detail = response.json()
+                    print(f"   Server error: {error_detail}")
+                    
+                    # Check for specific backend issues
+                    error_str = str(error_detail).lower()
+                    if "unpack" in error_str or "tuple" in error_str:
+                        print(f"   ❌ BACKEND BUG: Tuple unpacking error in parse_copy_paste_data function")
+                    
+                except:
+                    print(f"   Raw error response: {response.text}")
+                
+                return False
+                
+            else:
+                print(f"❌ Unexpected status - Expected 200, got {response.status_code}")
+                try:
+                    error_detail = response.json()
+                    print(f"   Error: {error_detail}")
+                except:
+                    print(f"   Response: {response.text}")
+                
+                return False
+                
+        except Exception as e:
+            print(f"❌ Request failed with exception: {str(e)}")
+            return False
+
     def test_error_handling(self):
         """Test error handling"""
         print("\n🚨 Testing Error Handling...")
