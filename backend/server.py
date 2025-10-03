@@ -1700,12 +1700,25 @@ async def get_correction_suggestions(correctie_id: str):
         correction_amount = correctie.get('amount', 0)
         tolerance = correction_amount * 0.1
         
-        similar_transactions = await db.transactions.find({
+        # Determine which category to search based on correction type
+        search_category = None
+        if correctie.get('correction_type') == 'creditfactuur_particulier':
+            search_category = "particulier"
+        elif correctie.get('correction_type') in ['creditdeclaratie_verzekeraar', 'correctiefactuur_verzekeraar']:
+            search_category = "zorgverzekeraar"
+        
+        # Build query with category filter
+        query = {
             "amount": {
                 "$gte": correction_amount - tolerance,
                 "$lte": correction_amount + tolerance + 1000  # Allow for larger original amounts
             }
-        }).to_list(50)  # Increased from 10 to 50 to get more potential matches
+        }
+        
+        if search_category:
+            query["category"] = search_category
+            
+        similar_transactions = await db.transactions.find(query).to_list(50)
         
         for transaction in similar_transactions:
             score = 0
