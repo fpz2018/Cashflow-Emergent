@@ -442,6 +442,31 @@ async def get_expense_categories():
     return [category.value for category in ExpenseCategory]
 
 # Copy-paste parsing functions
+def parse_dutch_currency(value: str) -> float:
+    """Parse Dutch currency format (€ -48,50 or -48,50) to float"""
+    if not value:
+        return 0.0
+    
+    # Remove currency symbols and spaces
+    cleaned = value.replace('€', '').replace(' ', '').strip()
+    
+    # Handle Dutch decimal format (comma instead of dot)
+    if ',' in cleaned:
+        # Check if comma is used as decimal separator (not thousands)
+        comma_pos = cleaned.rfind(',')
+        if len(cleaned) - comma_pos <= 3:  # Likely decimal separator
+            cleaned = cleaned.replace(',', '.')
+        else:
+            # Remove thousands separators, keep last comma as decimal
+            parts = cleaned.split(',')
+            if len(parts) > 1:
+                cleaned = ''.join(parts[:-1]) + '.' + parts[-1]
+    
+    try:
+        return float(cleaned)
+    except ValueError:
+        return 0.0
+
 def parse_copy_paste_data(data: str, expected_columns: List[str]) -> List[Dict[str, str]]:
     """Parse copy-paste data (tab/space separated) into structured format"""
     lines = [line.strip() for line in data.strip().split('\n') if line.strip()]
