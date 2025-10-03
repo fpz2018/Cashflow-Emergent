@@ -1507,6 +1507,76 @@ async def get_reconciliation_suggestions(bank_transaction_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error finding suggestions: {str(e)}")
 
+# Nieuwe endpoints voor uitgebreide cashflow management
+
+# Bank Saldo endpoints
+@api_router.get("/bank-saldo", response_model=List[BankSaldo])
+async def get_bank_saldos():
+    """Get all bank saldos"""
+    try:
+        saldos = await db.bank_saldos.find().sort([("date", -1)]).to_list(100)
+        return [BankSaldo(**parse_from_mongo(saldo)) for saldo in saldos]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching bank saldos: {str(e)}")
+
+@api_router.post("/bank-saldo", response_model=BankSaldo)
+async def create_bank_saldo(description: str = Form(...), amount: float = Form(...), date: str = Form(...)):
+    """Create a bank saldo entry"""
+    try:
+        saldo_date = datetime.strptime(date, "%Y-%m-%d").date()
+        
+        # Check if saldo for this date already exists
+        existing = await db.bank_saldos.find_one({"date": saldo_date.isoformat()})
+        if existing:
+            raise HTTPException(status_code=400, detail="Bank saldo voor deze datum bestaat al")
+        
+        saldo = BankSaldo(
+            date=saldo_date,
+            saldo=amount,
+            description=description
+        )
+        
+        saldo_dict = prepare_for_mongo(saldo.dict())
+        await db.bank_saldos.insert_one(saldo_dict)
+        
+        return saldo
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating bank saldo: {str(e)}")
+
+# Overige Omzet endpoints
+@api_router.get("/overige-omzet", response_model=List[OverigeOmzet])
+async def get_overige_omzet():
+    """Get all overige omzet entries"""
+    try:
+        omzet = await db.overige_omzet.find().sort([("date", -1)]).to_list(1000)
+        return [OverigeOmzet(**parse_from_mongo(o)) for o in omzet]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching overige omzet: {str(e)}")
+
+@api_router.post("/overige-omzet", response_model=OverigeOmzet)
+async def create_overige_omzet(description: str = Form(...), amount: float = Form(...), date: str = Form(...), recurring: bool = Form(False)):
+    """Create overige omzet entry"""
+    try:
+        omzet_date = datetime.strptime(date, "%Y-%m-%d").date()
+        
+        omzet = OverigeOmzet(
+            description=description,
+            amount=amount,
+            date=omzet_date,
+            recurring=recurring
+        )
+        
+        omzet_dict = prepare_for_mongo(omzet.dict())
+        await db.overige_omzet.insert_one(omzet_dict)
+        
+        return omzet
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating overige omzet: {str(e)}")
+
 # Copy-Paste Import Endpoints
 @api_router.post("/copy-paste-import/preview", response_model=CopyPasteImportResult)
 async def preview_copy_paste_import(request: CopyPasteImportRequest):
