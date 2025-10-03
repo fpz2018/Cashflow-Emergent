@@ -2013,7 +2013,7 @@ async def import_creditdeclaratie_verzekeraar(request: CopyPasteImportRequest):
                         correction.matched = True
                         auto_matched += 1
                         
-                        corrected_amount = original['amount'] - correction.amount
+                        corrected_amount = original['amount'] + correction.amount  # correction.amount is negative
                         await db.transactions.update_one(
                             {"id": original['id']},
                             {"$set": {"amount": corrected_amount}}
