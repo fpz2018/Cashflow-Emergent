@@ -1093,14 +1093,14 @@ PART003,2025-01-17,Piet Bakker,95.75"""
             print("❌ Failed to create sufficient test transactions")
             return False
         
-        # Step 2: Create a creditfactuur correction to test suggestions against
-        print("\n--- Step 2: Creating creditfactuur correction for testing ---")
+        # Step 2: Create a creditfactuur correction dated 2025-08-20 to test suggestions against
+        print("\n--- Step 2: Creating creditfactuur correction dated 2025-08-20 for testing ---")
         
         # Use a unique timestamp to ensure we find our correction
         import time
         unique_id = str(int(time.time()))[-6:]  # Last 6 digits of timestamp
-        # Use a unique amount that won't have exact matches in existing data
-        test_correction_data = f"""TEST{unique_id}  2025-01-20      TestPatient{unique_id}    € -73,25"""
+        # Use €48.5 amount to match our test transactions and date 2025-08-20 as per review request
+        test_correction_data = f"""TEST{unique_id}  20-8-2025      TestPatient{unique_id}    € -48,50"""
         
         import_request = {
             "data": test_correction_data,
