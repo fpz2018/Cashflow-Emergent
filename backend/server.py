@@ -1728,16 +1728,15 @@ async def get_correction_suggestions(correctie_id: str):
 # Correcties Bulk Import - Creditfactuur Particulier
 @api_router.post("/correcties/import-creditfactuur")
 async def import_creditfactuur_particulier(request: CopyPasteImportRequest):
-    """Import correcties via copy-paste data"""
+    """Import creditfacturen voor particuliere patiënten"""
     try:
-        # Expected columns for correcties
+        # Expected columns for creditfactuur particulier
         expected_columns = [
-            "type",           # creditfactuur_particulier, creditdeclaratie_verzekeraar, correctiefactuur_verzekeraar  
             "factuurnummer",  # Original invoice number to match against
-            "bedrag",         # Correction amount
+            "bedrag",         # Credit amount
             "beschrijving",   # Description
-            "datum",          # Date of correction
-            "patient"         # Patient name (optional)
+            "datum",          # Date of credit
+            "patient"         # Patient name
         ]
         
         corrections, errors = parse_copy_paste_data(request.data, expected_columns)
