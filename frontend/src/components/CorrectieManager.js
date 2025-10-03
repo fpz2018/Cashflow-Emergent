@@ -190,7 +190,9 @@ const CorrectieManager = () => {
         fetchUnmatchedCorrecties();
       }
     } catch (error) {
-      setError(error.response?.data?.detail || 'Fout bij bulk import correcties');
+      console.error('Bulk import error:', error);
+      const errorMessage = error.response?.data?.detail || error.message || 'Fout bij bulk import correcties';
+      setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
       setBulkResult(null);
     } finally {
       setLoading(false);
