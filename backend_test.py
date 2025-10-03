@@ -1565,6 +1565,7 @@ def main():
     
     # Run all tests
     tests = [
+        ("Correcties Suggestions Endpoint", tester.test_correcties_suggestions_endpoint),
         ("Creditfactuur Category Filtering", tester.test_creditfactuur_particulier_category_filtering),
         ("Dutch Formatting Bulk Import", tester.test_dutch_formatting_bulk_import),
     ]
