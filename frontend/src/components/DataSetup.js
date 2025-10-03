@@ -462,6 +462,11 @@ const DataSetup = () => {
       {activeSection === 'correcties' && (
         <CorrectieManager />
       )}
+
+      {/* Data Cleanup Section */}
+      {activeSection === 'cleanup' && (
+        <DataCleanup />
+      )}
     </div>
   );
 };
