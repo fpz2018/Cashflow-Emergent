@@ -1825,16 +1825,172 @@ async def import_creditfactuur_particulier(request: CopyPasteImportRequest):
                 continue
         
         return {
-            "message": f"Import voltooid: {successful_imports} correcties geïmporteerd",
+            "message": f"Import voltooid: {successful_imports} creditfacturen geïmporteerd",
             "successful_imports": successful_imports,
             "failed_imports": len(failed_imports),
             "auto_matched": auto_matched,
-            "errors": failed_imports[:10],  # Limit errors shown
+            "errors": failed_imports[:10],
             "total_corrections": len(corrections)
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error importing correcties: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error importing creditfacturen: {str(e)}")
+
+# Correcties Bulk Import - Creditdeclaratie Verzekeraar
+@api_router.post("/correcties/import-creditdeclaratie")
+async def import_creditdeclaratie_verzekeraar(request: CopyPasteImportRequest):
+    """Import creditdeclaraties voor zorgverzekeraars"""
+    try:
+        expected_columns = [
+            "declaratienummer",  # Declaration number to match
+            "zorgverzekeraar",   # Insurance company name
+            "bedrag",            # Credit amount
+            "reden",             # Reason for credit
+            "datum",             # Date of credit
+            "patient"            # Patient name
+        ]
+        
+        corrections, errors = parse_copy_paste_data(request.data, expected_columns)
+        
+        if not corrections and errors:
+            raise HTTPException(status_code=400, detail=f"Geen geldige creditdeclaraties gevonden. Fouten: {'; '.join(errors[:3])}")
+        
+        successful_imports = 0
+        failed_imports = []
+        auto_matched = 0
+        
+        for i, correction_data in enumerate(corrections):
+            try:
+                correction_date = correction_data.get('datum')
+                if isinstance(correction_date, str):
+                    correction_date = datetime.strptime(correction_date, "%Y-%m-%d").date()
+                
+                correction = Correction(
+                    correction_type="creditdeclaratie_verzekeraar",
+                    original_invoice_number=correction_data.get('declaratienummer', ''),
+                    amount=float(correction_data.get('bedrag', 0)),
+                    description=f"{correction_data.get('reden', '')} - {correction_data.get('zorgverzekeraar', '')}",
+                    date=correction_date,
+                    patient_name=correction_data.get('patient', '')
+                )
+                
+                # Try automatic matching by declaration number
+                if correction.original_invoice_number:
+                    original = await db.transactions.find_one({
+                        "invoice_number": correction.original_invoice_number,
+                        "category": "zorgverzekeraar"
+                    })
+                    
+                    if original:
+                        correction.original_transaction_id = original['id']
+                        correction.matched = True
+                        auto_matched += 1
+                        
+                        corrected_amount = original['amount'] - correction.amount
+                        await db.transactions.update_one(
+                            {"id": original['id']},
+                            {"$set": {"amount": corrected_amount}}
+                        )
+                
+                correction_dict = prepare_for_mongo(correction.dict())
+                await db.correcties.insert_one(correction_dict)
+                successful_imports += 1
+                
+            except Exception as e:
+                failed_imports.append(f"Rij {i+2}: {str(e)}")
+                continue
+        
+        return {
+            "message": f"Import voltooid: {successful_imports} creditdeclaraties geïmporteerd",
+            "successful_imports": successful_imports,
+            "failed_imports": len(failed_imports),
+            "auto_matched": auto_matched,
+            "errors": failed_imports[:10],
+            "total_corrections": len(corrections)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error importing creditdeclaraties: {str(e)}")
+
+# Correcties Bulk Import - Correctiefactuur Verzekeraar
+@api_router.post("/correcties/import-correctiefactuur")
+async def import_correctiefactuur_verzekeraar(request: CopyPasteImportRequest):
+    """Import correctiefacturen voor zorgverzekeraars"""
+    try:
+        expected_columns = [
+            "declaratienummer",     # Declaration number to match
+            "zorgverzekeraar",      # Insurance company name
+            "oorspronkelijk_bedrag", # Original amount
+            "gecorrigeerd_bedrag",   # Corrected amount
+            "reden",                # Reason for correction
+            "datum"                 # Date of correction
+        ]
+        
+        corrections, errors = parse_copy_paste_data(request.data, expected_columns)
+        
+        if not corrections and errors:
+            raise HTTPException(status_code=400, detail=f"Geen geldige correctiefacturen gevonden. Fouten: {'; '.join(errors[:3])}")
+        
+        successful_imports = 0
+        failed_imports = []
+        auto_matched = 0
+        
+        for i, correction_data in enumerate(corrections):
+            try:
+                correction_date = correction_data.get('datum')
+                if isinstance(correction_date, str):
+                    correction_date = datetime.strptime(correction_date, "%Y-%m-%d").date()
+                
+                oorspronkelijk = float(correction_data.get('oorspronkelijk_bedrag', 0))
+                gecorrigeerd = float(correction_data.get('gecorrigeerd_bedrag', 0))
+                correctie_bedrag = oorspronkelijk - gecorrigeerd
+                
+                correction = Correction(
+                    correction_type="correctiefactuur_verzekeraar",
+                    original_invoice_number=correction_data.get('declaratienummer', ''),
+                    amount=correctie_bedrag,
+                    description=f"Correctie: {correction_data.get('reden', '')} - {correction_data.get('zorgverzekeraar', '')} (was: €{oorspronkelijk}, nu: €{gecorrigeerd})",
+                    date=correction_date,
+                    patient_name=''
+                )
+                
+                # Try automatic matching by declaration number
+                if correction.original_invoice_number:
+                    original = await db.transactions.find_one({
+                        "invoice_number": correction.original_invoice_number,
+                        "category": "zorgverzekeraar"
+                    })
+                    
+                    if original:
+                        correction.original_transaction_id = original['id']
+                        correction.matched = True
+                        auto_matched += 1
+                        
+                        # Set to corrected amount
+                        await db.transactions.update_one(
+                            {"id": original['id']},
+                            {"$set": {"amount": gecorrigeerd}}
+                        )
+                
+                correction_dict = prepare_for_mongo(correction.dict())
+                await db.correcties.insert_one(correction_dict)
+                successful_imports += 1
+                
+            except Exception as e:
+                failed_imports.append(f"Rij {i+2}: {str(e)}")
+                continue
+        
+        return {
+            "message": f"Import voltooid: {successful_imports} correctiefacturen geïmporteerd",
+            "successful_imports": successful_imports,
+            "failed_imports": len(failed_imports),
+            "auto_matched": auto_matched,
+            "errors": failed_imports[:10],
+            "total_corrections": len(corrections)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error importing correctiefacturen: {str(e)}")
 
 # Copy-Paste Import Endpoints
 @api_router.post("/copy-paste-import/preview", response_model=CopyPasteImportResult)
