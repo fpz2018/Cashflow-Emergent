@@ -809,26 +809,16 @@ def validate_epd_particulier_row(row: Dict[str, str], row_number: int) -> Import
         else:
             errors.append('Datum is verplicht')
             
-        # Parse amount - handle Euro format like "€ 1.646,30"
+        # Parse amount using improved Dutch currency parser
         amount_str = row.get('bedrag', '').strip()
         if amount_str:
             try:
-                # Clean up Euro format: "€ 1.646,30"
-                clean_amount = amount_str.replace('€', '').replace('EUR', '').strip()
-                
-                # Handle European number format (comma as decimal separator, dot as thousands separator)
-                if ',' in clean_amount:
-                    # Split by comma to handle decimal separator
-                    parts = clean_amount.rsplit(',', 1)  # Split from right, max 1 split
-                    if len(parts) == 2 and len(parts[1]) <= 2:  # Likely decimal separator
-                        # Remove dots (thousands separators) from the main part
-                        main_part = parts[0].replace('.', '')
-                        clean_amount = main_part + '.' + parts[1]
-                    
-                mapped_data['amount'] = float(clean_amount)
-                if mapped_data['amount'] <= 0:
+                parsed_amount = parse_dutch_currency(amount_str)
+                if parsed_amount <= 0:
                     errors.append('Bedrag moet groter zijn dan 0')
-            except (ValueError, InvalidOperation):
+                else:
+                    mapped_data['amount'] = parsed_amount
+            except Exception:
                 errors.append(f'Ongeldig bedrag: {amount_str}')
         else:
             errors.append('Bedrag is verplicht')
