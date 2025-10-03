@@ -225,9 +225,9 @@
 
 ## test_plan:
   current_focus:
-    - "Correcties suggestions endpoint database query optimization"
+    []
   stuck_tasks:
-    - "Correcties suggestions endpoint database query optimization"
+    []
   test_all: false
   test_priority: "high_first"
 
