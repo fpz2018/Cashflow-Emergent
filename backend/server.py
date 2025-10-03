@@ -202,6 +202,43 @@ class CrediteurCreate(BaseModel):
     bedrag: float
     dag: int
 
+# Nieuwe models voor uitgebreide cashflow management
+class BankSaldo(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    date: date
+    saldo: float
+    description: str = "Banksaldo"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class OverigeOmzet(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    description: str
+    amount: float
+    date: date
+    category: str = "overige_omzet"
+    recurring: bool = False  # Is dit een terugkerende omzet?
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class Correction(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    correction_type: CorrectionType
+    original_transaction_id: Optional[str] = None  # Link naar originele transactie
+    original_invoice_number: Optional[str] = None  # Om te matchen als ID niet bekend is
+    amount: float  # Correctiebedrag
+    description: str
+    date: date
+    patient_name: Optional[str] = None
+    matched: bool = False  # Is gekoppeld aan originele transactie
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CorrectionCreate(BaseModel):
+    correction_type: CorrectionType
+    original_invoice_number: Optional[str] = None
+    amount: float
+    description: str
+    date: date
+    patient_name: Optional[str] = None
+
 class CopyPasteImportRequest(BaseModel):
     data: str  # Raw copy-paste data
     import_type: str  # 'verzekeraars' of 'crediteuren'
