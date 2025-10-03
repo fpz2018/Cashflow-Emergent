@@ -1768,12 +1768,38 @@ async def get_correction_suggestions(correctie_id: str):
                 score += 50
                 reasons.append("Vergelijkbaar bedrag")
             
-            # Patient name matching
-            if (correctie.get('patient_name') and 
-                transaction.get('patient_name') and 
-                correctie['patient_name'].lower() in transaction['patient_name'].lower()):
-                score += 30
-                reasons.append("Patiënt naam match")
+            # Enhanced patient name matching
+            correction_patient = correctie.get('patient_name', '').lower().strip()
+            transaction_patient = transaction.get('patient_name', '').lower().strip()
+            
+            if correction_patient and transaction_patient:
+                # Exact match
+                if correction_patient == transaction_patient:
+                    score += 40
+                    reasons.append("Exacte naam match")
+                # Contains match (one way or the other)
+                elif (correction_patient in transaction_patient or 
+                      transaction_patient in correction_patient):
+                    score += 30
+                    reasons.append("Gedeeltelijke naam match")
+                # Split names and check for word matches
+                else:
+                    correction_words = set(correction_patient.replace(',', ' ').split())
+                    transaction_words = set(transaction_patient.replace(',', ' ').split())
+                    
+                    # Remove common words that don't help matching
+                    common_words = {'van', 'de', 'der', 'den', 'het', 'een', 'en', 'te', 'voor', 'naar', 'bij'}
+                    correction_words = correction_words - common_words
+                    transaction_words = transaction_words - common_words
+                    
+                    # Calculate word overlap
+                    matching_words = correction_words & transaction_words
+                    if len(matching_words) >= 2:  # At least 2 matching words
+                        score += 25
+                        reasons.append(f"Naam woorden match ({len(matching_words)} woorden)")
+                    elif len(matching_words) >= 1 and len(correction_words) <= 2:  # For short names
+                        score += 15
+                        reasons.append("Enkele naam match")
             
             # Date proximity bonus (but don't exclude based on date)
             try:
