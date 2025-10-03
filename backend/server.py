@@ -443,24 +443,37 @@ async def get_expense_categories():
 
 # Copy-paste parsing functions
 def parse_dutch_currency(value: str) -> float:
-    """Parse Dutch currency format (€ -48,50 or -48,50) to float"""
+    """Parse Dutch currency format (€ -1.008,50 or -48,50) to float"""
     if not value:
         return 0.0
     
     # Remove currency symbols and spaces
     cleaned = value.replace('€', '').replace(' ', '').strip()
     
-    # Handle Dutch decimal format (comma instead of dot)
-    if ',' in cleaned:
-        # Check if comma is used as decimal separator (not thousands)
+    # Handle Dutch number format with dots as thousands and comma as decimal
+    if '.' in cleaned and ',' in cleaned:
+        # Format like 1.008,50 - dot is thousands separator, comma is decimal
+        # Remove dots (thousands separators) and replace comma with dot
+        cleaned = cleaned.replace('.', '').replace(',', '.')
+    elif ',' in cleaned:
+        # Only comma present - check if it's decimal separator
         comma_pos = cleaned.rfind(',')
-        if len(cleaned) - comma_pos <= 3:  # Likely decimal separator
+        if len(cleaned) - comma_pos <= 3:  # Last comma is decimal separator
             cleaned = cleaned.replace(',', '.')
         else:
-            # Remove thousands separators, keep last comma as decimal
-            parts = cleaned.split(',')
-            if len(parts) > 1:
+            # Multiple commas or weird format, remove all commas
+            cleaned = cleaned.replace(',', '')
+    elif '.' in cleaned:
+        # Only dots present - could be thousands separator or decimal
+        dot_pos = cleaned.rfind('.')
+        if len(cleaned) - dot_pos <= 3:  # Last dot might be decimal
+            # If it's like "1.008" it's probably thousands, if it's "48.50" it's decimal
+            # Check if there are multiple dots or if the number before last dot is > 999
+            parts = cleaned.split('.')
+            if len(parts) > 2 or (len(parts) == 2 and len(parts[0]) > 3):
+                # Multiple dots or large number before dot = thousands separator
                 cleaned = ''.join(parts[:-1]) + '.' + parts[-1]
+            # Otherwise leave as is (could be decimal)
     
     try:
         return float(cleaned)
