@@ -2048,6 +2048,66 @@ async def import_correctiefactuur_verzekeraar(request: CopyPasteImportRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error importing correctiefacturen: {str(e)}")
 
+# Data Cleanup Endpoints
+@api_router.delete("/cleanup/all-data")
+async def cleanup_all_data():
+    """DANGEROUS: Delete all data for fresh start"""
+    try:
+        # Delete all collections
+        await db.transactions.delete_many({})
+        await db.crediteuren.delete_many({})
+        await db.verzekeraars.delete_many({})
+        await db.correcties.delete_many({})
+        await db.bank_transactions.delete_many({})
+        await db.bank_saldos.delete_many({})
+        await db.overige_omzet.delete_many({})
+        
+        return {
+            "message": "Alle data succesvol verwijderd",
+            "deleted_collections": [
+                "transactions", "crediteuren", "verzekeraars", 
+                "correcties", "bank_transactions", "bank_saldos", "overige_omzet"
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error during cleanup: {str(e)}")
+
+@api_router.delete("/cleanup/corrections")
+async def cleanup_corrections():
+    """Delete all corrections data"""
+    try:
+        result = await db.correcties.delete_many({})
+        return {
+            "message": f"Alle correcties verwijderd: {result.deleted_count} items",
+            "deleted_count": result.deleted_count
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting corrections: {str(e)}")
+
+@api_router.delete("/cleanup/transactions")
+async def cleanup_transactions():
+    """Delete all transactions data"""
+    try:
+        result = await db.transactions.delete_many({})
+        return {
+            "message": f"Alle transacties verwijderd: {result.deleted_count} items",
+            "deleted_count": result.deleted_count
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting transactions: {str(e)}")
+
+@api_router.delete("/cleanup/bank-transactions")
+async def cleanup_bank_transactions():
+    """Delete all bank transactions data"""
+    try:
+        result = await db.bank_transactions.delete_many({})
+        return {
+            "message": f"Alle bank transacties verwijderd: {result.deleted_count} items", 
+            "deleted_count": result.deleted_count
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting bank transactions: {str(e)}")
+
 # Copy-Paste Import Endpoints
 @api_router.post("/copy-paste-import/preview", response_model=CopyPasteImportResult)
 async def preview_copy_paste_import(request: CopyPasteImportRequest):
