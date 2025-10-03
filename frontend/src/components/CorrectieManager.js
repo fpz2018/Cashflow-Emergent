@@ -24,22 +24,22 @@ const CorrectieManager = () => {
       id: 'creditfactuur', 
       label: 'Creditfactuur Particulier',
       description: 'Voor particuliere patiënten',
-      columns: ['Factuurnummer', 'Bedrag', 'Beschrijving', 'Datum', 'Patiënt'],
-      example: 'INV001	50.00	Creditnota behandeling	2025-01-15	Jan Jansen'
+      columns: ['Factuur', 'Datum', 'Debiteur', 'Bedrag (MIN)'],
+      example: 'INV001	2025-01-15	Jan Jansen	-50.00'
     },
     { 
       id: 'creditdeclaratie', 
       label: 'Creditdeclaratie Verzekeraar',
       description: 'Voor zorgverzekeraar declaraties',  
-      columns: ['Declaratienummer', 'Zorgverzekeraar', 'Bedrag', 'Reden', 'Datum', 'Patiënt'],
-      example: 'DECL001	VGZ	75.50	Dubbele declaratie	2025-01-14	Piet Pietersen'
+      columns: ['Factuur', 'Datum', 'Verzekeraar', 'Factuur Origineel', 'Bedrag (MIN)'],
+      example: 'CREDIT001	2025-01-14	VGZ	DECL001	-75.50'
     },
     { 
       id: 'correctiefactuur', 
       label: 'Correctiefactuur Verzekeraar',
       description: 'Voor zorgverzekeraar correcties',
-      columns: ['Declaratienummer', 'Zorgverzekeraar', 'Oorspronkelijk Bedrag', 'Gecorrigeerd Bedrag', 'Reden', 'Datum'],
-      example: 'DECL002	CZ	100.00	85.50	Tarief correctie	2025-01-13'
+      columns: ['Factuur', 'Datum', 'Verzekeraar', 'Factuur Origineel', 'Bedrag (MIN)'],
+      example: 'CORR001	2025-01-13	CZ	DECL002	-25.00'
     }
   ];
 
