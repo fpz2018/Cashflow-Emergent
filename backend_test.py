@@ -1612,7 +1612,7 @@ def main():
     
     # Run all tests
     tests = [
-        ("Correcties Suggestions Endpoint", tester.test_correcties_suggestions_endpoint),
+        ("Correcties Suggestions Aggregation Pipeline", tester.test_correcties_suggestions_aggregation_pipeline),
         ("Creditfactuur Category Filtering", tester.test_creditfactuur_particulier_category_filtering),
         ("Dutch Formatting Bulk Import", tester.test_dutch_formatting_bulk_import),
     ]
