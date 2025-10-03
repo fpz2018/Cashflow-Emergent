@@ -1097,7 +1097,10 @@ PART003,2025-01-17,Piet Bakker,95.75"""
         # Step 2: Create a creditfactuur correction to test suggestions against
         print("\n--- Step 2: Creating creditfactuur correction for testing ---")
         
-        test_correction_data = """TEST123  2025-01-20      Test Patiënt Correctie    € -100,00"""
+        # Use a unique timestamp to ensure we find our correction
+        import time
+        unique_id = str(int(time.time()))[-6:]  # Last 6 digits of timestamp
+        test_correction_data = f"""TEST{unique_id}  2025-01-20      TestPatient{unique_id}    € -100,00"""
         
         import_request = {
             "data": test_correction_data,
