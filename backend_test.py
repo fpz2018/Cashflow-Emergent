@@ -2523,6 +2523,7 @@ def main():
     
     # Run all tests
     tests = [
+        ("BUNQ Dutch Formatting Import", tester.test_bunq_import_dutch_formatting),
         ("Dutch Name Extraction and Currency Parsing", tester.test_dutch_name_extraction_and_currency_parsing),
         ("Persoonsnaam Extraction and Enhanced Matching", tester.test_persoonsnaam_extraction_and_matching),
         ("Correcties Suggestions Aggregation Pipeline", tester.test_correcties_suggestions_aggregation_pipeline),
