@@ -156,6 +156,18 @@
           agent: "testing"
           comment: "CREDITFACTUUR PARTICULIER CATEGORY FILTERING VERIFICATION COMPLETED ✅ Comprehensive testing confirms automatic matching logic ONLY searches category: 'particulier' transactions ✅ Created test transactions with both 'particulier' and 'zorgverzekeraar' categories (same patient name and amount) ✅ Creditfactuur import with TEST001 data correctly matched ONLY the 'particulier' transaction (invoice TEST001) ✅ Did NOT match the 'zorgverzekeraar' transaction (invoice ZV001) despite identical patient name and amount ✅ Auto-matching worked perfectly: 1 successful import, 1 auto-matched ✅ Verified matched transaction has category: 'particulier' and correct invoice number ✅ Category filtering is implemented correctly in lines 1811 and 1832 of server.py ✅ Dutch formatting still works: € -50,00 parsed correctly, tab-separated data processed ✅ import_type parameter accepted without errors ✅ CONCLUSION: Creditfactuur particulier matching logic correctly filters ONLY particulier transactions, does NOT match zorgverzekeraar transactions"
 
+  - task: "Creditfactuur particulier category filtering verification"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "CATEGORY FILTERING TEST COMPLETED ✅ Verified /api/correcties/import-creditfactuur ONLY matches transactions with category: 'particulier' ✅ Test scenario: Created identical transactions with 'particulier' and 'zorgverzekeraar' categories (same patient name, amount) ✅ Creditfactuur import correctly matched ONLY the particulier transaction ✅ Did NOT match the zorgverzekeraar transaction despite identical data ✅ Invoice number matching: Lines 1809-1812 filter on category: 'particulier' ✅ Patient name matching: Lines 1829-1833 filter on category: 'particulier' ✅ Auto-matching success: 1/1 imports matched correctly ✅ Verified matched transaction category and invoice number ✅ Test data: TEST001, 2025-01-15, Test Patiënt, € -50,00 ✅ CONCLUSION: Category filtering logic is working correctly - creditfactuur particulier ONLY matches particulier transactions, NOT zorgverzekeraar transactions"
+
 ## frontend:
   - task: "Bank reconciliation UI voor crediteur matching"
     implemented: true
