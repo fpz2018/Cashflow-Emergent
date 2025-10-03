@@ -442,6 +442,20 @@ async def get_expense_categories():
     return [category.value for category in ExpenseCategory]
 
 # Copy-paste parsing functions
+def extract_clean_name(raw_name: str) -> str:
+    """Extract clean name by removing everything before and including the dash"""
+    if not raw_name:
+        return ''
+    
+    raw_name = raw_name.strip()
+    
+    # If there's a dash, take everything after it
+    if '-' in raw_name:
+        return raw_name.split('-', 1)[1].strip()
+    
+    # If no dash, return the original (already clean)
+    return raw_name
+
 def parse_dutch_currency(value: str) -> float:
     """Parse Dutch currency format (€ -1.008,50 or -48,50) to float"""
     if not value:
