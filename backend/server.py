@@ -1884,10 +1884,10 @@ async def import_creditdeclaratie_verzekeraar(request: CopyPasteImportRequest):
             "bedrag"             # Credit amount (negative)
         ]
         
-        corrections, errors = parse_copy_paste_data(request.data, expected_columns)
+        corrections = parse_copy_paste_data(request.data, expected_columns)
         
-        if not corrections and errors:
-            raise HTTPException(status_code=400, detail=f"Geen geldige creditdeclaraties gevonden. Fouten: {'; '.join(errors[:3])}")
+        if not corrections:
+            raise HTTPException(status_code=400, detail="Geen geldige creditdeclaraties gevonden")
         
         successful_imports = 0
         failed_imports = []
