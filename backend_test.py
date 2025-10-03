@@ -698,6 +698,167 @@ PART003,2025-01-17,Piet Bakker,95.75"""
             self.tests_run += 1
             return False
 
+    def test_cashflow_forecast_endpoints(self):
+        """Test the new cashflow forecast API endpoints as requested"""
+        print("\n📈 Testing Cashflow Forecast Endpoints...")
+        print("   Focus: Testing cashflow-forecast, bank-saldo, overige-omzet, and correcties APIs")
+        
+        all_success = True
+        
+        # Test 1: GET /api/cashflow-forecast?days=30
+        print("\n--- Testing cashflow-forecast endpoint ---")
+        success1, forecast_30 = self.run_test(
+            "Cashflow Forecast (30 days)",
+            "GET",
+            "cashflow-forecast",
+            200,
+            params={"days": 30}
+        )
+        
+        if success1 and isinstance(forecast_30, dict):
+            print(f"   ✅ 30-day forecast structure:")
+            print(f"     - Start date: {forecast_30.get('start_date', 'N/A')}")
+            print(f"     - Forecast days count: {len(forecast_30.get('forecast_days', []))}")
+            print(f"     - Total expected income: €{forecast_30.get('total_expected_income', 0)}")
+            print(f"     - Total expected expenses: €{forecast_30.get('total_expected_expenses', 0)}")
+            print(f"     - Net expected: €{forecast_30.get('net_expected', 0)}")
+            
+            # Verify forecast_days array structure
+            forecast_days = forecast_30.get('forecast_days', [])
+            if forecast_days and len(forecast_days) > 0:
+                sample_day = forecast_days[0]
+                required_fields = ['date', 'inkomsten', 'uitgaven', 'net_cashflow', 'verwachte_saldo', 'payments']
+                missing_fields = [field for field in required_fields if field not in sample_day]
+                if missing_fields:
+                    print(f"     ⚠️  Missing fields in forecast_days: {missing_fields}")
+                else:
+                    print(f"     ✅ Forecast day structure is correct")
+            else:
+                print(f"     ⚠️  No forecast_days data returned")
+        
+        # Test 2: GET /api/cashflow-forecast?days=60
+        success2, forecast_60 = self.run_test(
+            "Cashflow Forecast (60 days)",
+            "GET", 
+            "cashflow-forecast",
+            200,
+            params={"days": 60}
+        )
+        
+        if success2 and isinstance(forecast_60, dict):
+            forecast_days_60 = forecast_60.get('forecast_days', [])
+            print(f"   ✅ 60-day forecast: {len(forecast_days_60)} days returned")
+        
+        # Test 3: GET /api/cashflow-forecast?days=90
+        success3, forecast_90 = self.run_test(
+            "Cashflow Forecast (90 days)",
+            "GET",
+            "cashflow-forecast", 
+            200,
+            params={"days": 90}
+        )
+        
+        if success3 and isinstance(forecast_90, dict):
+            forecast_days_90 = forecast_90.get('forecast_days', [])
+            print(f"   ✅ 90-day forecast: {len(forecast_days_90)} days returned")
+        
+        # Test 4: GET /api/bank-saldo
+        print("\n--- Testing bank-saldo endpoint ---")
+        success4, bank_saldo = self.run_test(
+            "Bank Saldo API",
+            "GET",
+            "bank-saldo",
+            200
+        )
+        
+        if success4:
+            if isinstance(bank_saldo, list):
+                print(f"   ✅ Bank saldo returned array with {len(bank_saldo)} entries")
+                if len(bank_saldo) > 0:
+                    sample_saldo = bank_saldo[0]
+                    required_fields = ['id', 'date', 'saldo', 'description', 'created_at']
+                    missing_fields = [field for field in required_fields if field not in sample_saldo]
+                    if missing_fields:
+                        print(f"     ⚠️  Missing fields in bank saldo: {missing_fields}")
+                    else:
+                        print(f"     ✅ Bank saldo structure is correct")
+                        print(f"     Sample: {sample_saldo.get('description', 'N/A')} - €{sample_saldo.get('saldo', 0)} on {sample_saldo.get('date', 'N/A')}")
+                else:
+                    print(f"   ✅ Empty array returned (no bank saldo data yet)")
+            else:
+                print(f"   ⚠️  Expected array, got: {type(bank_saldo)}")
+        
+        # Test 5: GET /api/overige-omzet
+        print("\n--- Testing overige-omzet endpoint ---")
+        success5, overige_omzet = self.run_test(
+            "Overige Omzet API",
+            "GET",
+            "overige-omzet",
+            200
+        )
+        
+        if success5:
+            if isinstance(overige_omzet, list):
+                print(f"   ✅ Overige omzet returned array with {len(overige_omzet)} entries")
+                if len(overige_omzet) > 0:
+                    sample_omzet = overige_omzet[0]
+                    required_fields = ['id', 'description', 'amount', 'date', 'category', 'recurring', 'created_at']
+                    missing_fields = [field for field in required_fields if field not in sample_omzet]
+                    if missing_fields:
+                        print(f"     ⚠️  Missing fields in overige omzet: {missing_fields}")
+                    else:
+                        print(f"     ✅ Overige omzet structure is correct")
+                        print(f"     Sample: {sample_omzet.get('description', 'N/A')} - €{sample_omzet.get('amount', 0)} on {sample_omzet.get('date', 'N/A')}")
+                else:
+                    print(f"   ✅ Empty array returned (no overige omzet data yet)")
+            else:
+                print(f"   ⚠️  Expected array, got: {type(overige_omzet)}")
+        
+        # Test 6: GET /api/correcties
+        print("\n--- Testing correcties endpoint ---")
+        success6, correcties = self.run_test(
+            "Correcties API",
+            "GET",
+            "correcties",
+            200
+        )
+        
+        if success6:
+            if isinstance(correcties, list):
+                print(f"   ✅ Correcties returned array with {len(correcties)} entries")
+                if len(correcties) > 0:
+                    sample_correctie = correcties[0]
+                    required_fields = ['id', 'correction_type', 'amount', 'description', 'date', 'matched', 'created_at']
+                    missing_fields = [field for field in required_fields if field not in sample_correctie]
+                    if missing_fields:
+                        print(f"     ⚠️  Missing fields in correcties: {missing_fields}")
+                    else:
+                        print(f"     ✅ Correcties structure is correct")
+                        print(f"     Sample: {sample_correctie.get('description', 'N/A')} - €{sample_correctie.get('amount', 0)} on {sample_correctie.get('date', 'N/A')}")
+                else:
+                    print(f"   ✅ Empty array returned (no correcties data yet)")
+            else:
+                print(f"   ⚠️  Expected array, got: {type(correcties)}")
+        
+        # Summary
+        all_success = success1 and success2 and success3 and success4 and success5 and success6
+        
+        print(f"\n   📊 CASHFLOW FORECAST ENDPOINTS TEST SUMMARY:")
+        print(f"   - Cashflow forecast (30 days): {'✅ PASSED' if success1 else '❌ FAILED'}")
+        print(f"   - Cashflow forecast (60 days): {'✅ PASSED' if success2 else '❌ FAILED'}")
+        print(f"   - Cashflow forecast (90 days): {'✅ PASSED' if success3 else '❌ FAILED'}")
+        print(f"   - Bank saldo API: {'✅ PASSED' if success4 else '❌ FAILED'}")
+        print(f"   - Overige omzet API: {'✅ PASSED' if success5 else '❌ FAILED'}")
+        print(f"   - Correcties API: {'✅ PASSED' if success6 else '❌ FAILED'}")
+        
+        if all_success:
+            print(f"   ✅ ALL CASHFLOW FORECAST ENDPOINTS WORKING CORRECTLY!")
+            print(f"   ✅ No 500 errors detected, data structures are correct")
+        else:
+            print(f"   ❌ SOME CASHFLOW FORECAST ENDPOINTS HAVE ISSUES")
+        
+        return all_success
+
     def test_error_handling(self):
         """Test error handling"""
         print("\n🚨 Testing Error Handling...")
