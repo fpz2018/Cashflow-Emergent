@@ -1841,12 +1841,11 @@ async def import_creditdeclaratie_verzekeraar(request: CopyPasteImportRequest):
     """Import creditdeclaraties voor zorgverzekeraars"""
     try:
         expected_columns = [
-            "declaratienummer",  # Declaration number to match
-            "zorgverzekeraar",   # Insurance company name
-            "bedrag",            # Credit amount
-            "reden",             # Reason for credit
+            "factuur",          # Credit invoice number
             "datum",             # Date of credit
-            "patient"            # Patient name
+            "verzekeraar",       # Insurance company name
+            "factuur_origineel", # Original invoice number to match
+            "bedrag"             # Credit amount (negative)
         ]
         
         corrections, errors = parse_copy_paste_data(request.data, expected_columns)
