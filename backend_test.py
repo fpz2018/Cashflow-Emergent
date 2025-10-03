@@ -1930,6 +1930,382 @@ PART003,2025-01-17,Piet Bakker,95.75"""
         
         return success1 and success2 and success3 and success4
 
+    def test_dutch_name_extraction_and_currency_parsing(self):
+        """Test the specific Dutch formatting and name extraction functionality from the review request"""
+        print("\n🇳🇱 Testing Dutch Name Extraction and Currency Parsing...")
+        print("   Focus: Testing parse_dutch_currency and extract_clean_name functions")
+        print("   Testing EPD imports with Dutch formatting and name extraction")
+        
+        all_tests_passed = True
+        
+        # Test 1: Nederlandse Currency Parser direct testing via EPD imports
+        print("\n--- Test 1: Nederlandse Currency Parser via EPD Import ---")
+        
+        # Test data with specific Dutch currency formats from review request
+        epd_particulier_test_data = """factuur,datum,debiteur,bedrag
+TEST001,15-1-2025,202500008568-Knauff Ienke,€ 1.008,00
+TEST002,16-1-2025,202500008569-Pietersen Jan,€ -48,50
+TEST003,17-1-2025,202500008570-Van der Berg Maria,€ 2.500,75"""
+        
+        print("   Testing currency formats:")
+        print("   - € 1.008,00 → should become 1008.00")
+        print("   - € -48,50 → should become 48.50") 
+        print("   - € 2.500,75 → should become 2500.75")
+        
+        files = {
+            'file': ('test_dutch_currency.csv', epd_particulier_test_data, 'text/csv')
+        }
+        data = {
+            'import_type': 'epd_particulier'
+        }
+        
+        url = f"{self.api_url}/import/execute"
+        
+        try:
+            response = requests.post(url, data=data, files=files)
+            
+            if response.status_code == 200:
+                self.tests_passed += 1
+                print(f"✅ EPD Particulier import successful - Status: {response.status_code}")
+                
+                response_data = response.json()
+                imported_count = response_data.get('imported_count', 0)
+                created_transactions = response_data.get('created_transactions', [])
+                
+                print(f"   📊 Import Results:")
+                print(f"     - Imported count: {imported_count}")
+                print(f"     - Created transactions: {len(created_transactions)}")
+                
+                if imported_count >= 3:
+                    print(f"   ✅ All 3 transactions imported successfully")
+                    
+                    # Verify the imported transactions have correct amounts
+                    success, transactions = self.run_test(
+                        "Get Imported Transactions",
+                        "GET",
+                        "transactions",
+                        200,
+                        params={"category": "particulier"}
+                    )
+                    
+                    if success and isinstance(transactions, list):
+                        # Find our test transactions
+                        test_transactions = [t for t in transactions if t.get('invoice_number', '').startswith('TEST')]
+                        
+                        print(f"   📋 Verifying currency parsing results:")
+                        expected_amounts = {
+                            'TEST001': 1008.00,  # € 1.008,00
+                            'TEST002': 48.50,    # € -48,50 (absolute value)
+                            'TEST003': 2500.75   # € 2.500,75
+                        }
+                        
+                        currency_parsing_correct = True
+                        name_extraction_correct = True
+                        
+                        for transaction in test_transactions:
+                            invoice_num = transaction.get('invoice_number', '')
+                            actual_amount = transaction.get('amount', 0)
+                            patient_name = transaction.get('patient_name', '')
+                            
+                            if invoice_num in expected_amounts:
+                                expected_amount = expected_amounts[invoice_num]
+                                
+                                print(f"     - {invoice_num}: €{actual_amount} (expected €{expected_amount})")
+                                print(f"       Patient name: '{patient_name}'")
+                                
+                                if abs(actual_amount - expected_amount) < 0.01:
+                                    print(f"       ✅ Currency parsing correct")
+                                else:
+                                    print(f"       ❌ Currency parsing incorrect")
+                                    currency_parsing_correct = False
+                                
+                                # Check name extraction
+                                if invoice_num == 'TEST001':
+                                    expected_name = "Knauff Ienke"  # Should extract after dash
+                                    if patient_name == expected_name:
+                                        print(f"       ✅ Name extraction correct: '{patient_name}'")
+                                    else:
+                                        print(f"       ❌ Name extraction incorrect: got '{patient_name}', expected '{expected_name}'")
+                                        name_extraction_correct = False
+                                elif invoice_num == 'TEST002':
+                                    expected_name = "Pietersen Jan"  # Should extract after dash
+                                    if patient_name == expected_name:
+                                        print(f"       ✅ Name extraction correct: '{patient_name}'")
+                                    else:
+                                        print(f"       ❌ Name extraction incorrect: got '{patient_name}', expected '{expected_name}'")
+                                        name_extraction_correct = False
+                        
+                        if currency_parsing_correct:
+                            print(f"   ✅ DUTCH CURRENCY PARSING WORKING CORRECTLY")
+                            print(f"     - € 1.008,00 → 1008.00 ✅")
+                            print(f"     - € -48,50 → 48.50 ✅") 
+                            print(f"     - € 2.500,75 → 2500.75 ✅")
+                        else:
+                            print(f"   ❌ DUTCH CURRENCY PARSING HAS ISSUES")
+                            all_tests_passed = False
+                        
+                        if name_extraction_correct:
+                            print(f"   ✅ NAME EXTRACTION WORKING CORRECTLY")
+                            print(f"     - Removes factuurnummer prefix before dash")
+                            print(f"     - Extracts clean patient names")
+                        else:
+                            print(f"   ❌ NAME EXTRACTION HAS ISSUES")
+                            all_tests_passed = False
+                    else:
+                        print(f"   ❌ Could not retrieve imported transactions for verification")
+                        all_tests_passed = False
+                else:
+                    print(f"   ❌ Expected 3 imports, got {imported_count}")
+                    all_tests_passed = False
+            else:
+                print(f"❌ EPD Particulier import failed - Status: {response.status_code}")
+                try:
+                    error_detail = response.json()
+                    print(f"   Error: {error_detail}")
+                except:
+                    print(f"   Response: {response.text}")
+                all_tests_passed = False
+            
+            self.tests_run += 1
+            
+        except Exception as e:
+            print(f"❌ EPD Particulier import error: {str(e)}")
+            all_tests_passed = False
+            self.tests_run += 1
+        
+        # Test 2: EPD Zorgverzekeraar Import with Name Extraction
+        print("\n--- Test 2: EPD Zorgverzekeraar Import with Name Extraction ---")
+        
+        epd_zorgverzekeraar_test_data = """factuur,datum,verzekeraar,bedrag
+ZV001,15-1-2025,202500008568-CZ Zorgverzekeraar,€ 1.008,00
+ZV002,16-1-2025,202500008569-VGZ Zorgverzekeringen,€ 150,50
+ZV003,17-1-2025,Zilveren Kruis,€ 200,25"""
+        
+        print("   Testing zorgverzekeraar name extraction:")
+        print("   - 202500008568-CZ Zorgverzekeraar → should become 'CZ Zorgverzekeraar'")
+        print("   - 202500008569-VGZ Zorgverzekeringen → should become 'VGZ Zorgverzekeringen'")
+        print("   - Zilveren Kruis → should remain 'Zilveren Kruis' (no dash)")
+        
+        files = {
+            'file': ('test_zorgverzekeraar_names.csv', epd_zorgverzekeraar_test_data, 'text/csv')
+        }
+        data = {
+            'import_type': 'epd_declaraties'
+        }
+        
+        try:
+            response = requests.post(url, data=data, files=files)
+            
+            if response.status_code == 200:
+                self.tests_passed += 1
+                print(f"✅ EPD Zorgverzekeraar import successful - Status: {response.status_code}")
+                
+                response_data = response.json()
+                imported_count = response_data.get('imported_count', 0)
+                
+                if imported_count >= 3:
+                    # Verify the imported transactions have correct patient names
+                    success, transactions = self.run_test(
+                        "Get Zorgverzekeraar Transactions",
+                        "GET",
+                        "transactions",
+                        200,
+                        params={"category": "zorgverzekeraar"}
+                    )
+                    
+                    if success and isinstance(transactions, list):
+                        zv_transactions = [t for t in transactions if t.get('invoice_number', '').startswith('ZV')]
+                        
+                        print(f"   📋 Verifying zorgverzekeraar name extraction:")
+                        expected_names = {
+                            'ZV001': "CZ Zorgverzekeraar",
+                            'ZV002': "VGZ Zorgverzekeringen", 
+                            'ZV003': "Zilveren Kruis"
+                        }
+                        
+                        zv_name_extraction_correct = True
+                        
+                        for transaction in zv_transactions:
+                            invoice_num = transaction.get('invoice_number', '')
+                            patient_name = transaction.get('patient_name', '')
+                            
+                            if invoice_num in expected_names:
+                                expected_name = expected_names[invoice_num]
+                                print(f"     - {invoice_num}: '{patient_name}' (expected '{expected_name}')")
+                                
+                                if patient_name == expected_name:
+                                    print(f"       ✅ Zorgverzekeraar name extraction correct")
+                                else:
+                                    print(f"       ❌ Zorgverzekeraar name extraction incorrect")
+                                    zv_name_extraction_correct = False
+                        
+                        if zv_name_extraction_correct:
+                            print(f"   ✅ ZORGVERZEKERAAR NAME EXTRACTION WORKING CORRECTLY")
+                        else:
+                            print(f"   ❌ ZORGVERZEKERAAR NAME EXTRACTION HAS ISSUES")
+                            all_tests_passed = False
+                    else:
+                        print(f"   ❌ Could not retrieve zorgverzekeraar transactions for verification")
+                        all_tests_passed = False
+                else:
+                    print(f"   ❌ Expected 3 zorgverzekeraar imports, got {imported_count}")
+                    all_tests_passed = False
+            else:
+                print(f"❌ EPD Zorgverzekeraar import failed - Status: {response.status_code}")
+                all_tests_passed = False
+            
+            self.tests_run += 1
+            
+        except Exception as e:
+            print(f"❌ EPD Zorgverzekeraar import error: {str(e)}")
+            all_tests_passed = False
+            self.tests_run += 1
+        
+        # Test 3: Correcties Bulk Import with Dutch Formatting
+        print("\n--- Test 3: Correcties Bulk Import with Dutch Formatting ---")
+        
+        # Test data exactly as specified in review request
+        correcties_test_data = """202500008568	20-2-2025	202500008568-Knauff, Ienke	€ -48,50
+202500008569	20-2-2025	202500008569-Pietersen, Jan	€ 1.008,00"""
+        
+        print("   Testing correcties import with:")
+        print("   - Dutch date format: 20-2-2025")
+        print("   - Dutch currency format: € -48,50 and € 1.008,00")
+        print("   - Name extraction: 202500008568-Knauff, Ienke → 'Knauff, Ienke'")
+        print("   - Tab-separated data")
+        
+        import_request = {
+            "data": correcties_test_data,
+            "import_type": "creditfactuur_particulier"
+        }
+        
+        correcties_url = f"{self.api_url}/correcties/import-creditfactuur"
+        headers = {'Content-Type': 'application/json'}
+        
+        try:
+            response = requests.post(correcties_url, json=import_request, headers=headers)
+            
+            if response.status_code == 200:
+                self.tests_passed += 1
+                print(f"✅ Correcties bulk import successful - Status: {response.status_code}")
+                
+                response_data = response.json()
+                successful_imports = response_data.get('successful_imports', 0)
+                failed_imports = response_data.get('failed_imports', 0)
+                
+                print(f"   📊 Correcties Import Results:")
+                print(f"     - Successful imports: {successful_imports}")
+                print(f"     - Failed imports: {failed_imports}")
+                
+                if successful_imports >= 2:
+                    print(f"   ✅ Both corrections imported successfully")
+                    
+                    # Verify the imported corrections
+                    success, correcties = self.run_test(
+                        "Get Imported Corrections",
+                        "GET",
+                        "correcties",
+                        200
+                    )
+                    
+                    if success and isinstance(correcties, list):
+                        # Find our test corrections (most recent ones)
+                        recent_correcties = sorted(correcties, key=lambda x: x.get('created_at', ''), reverse=True)[:2]
+                        
+                        print(f"   📋 Verifying correcties data:")
+                        
+                        correcties_verification_passed = True
+                        
+                        for i, correction in enumerate(recent_correcties):
+                            patient_name = correction.get('patient_name', '')
+                            amount = correction.get('amount', 0)
+                            date = correction.get('date', '')
+                            
+                            print(f"     Correction {i+1}:")
+                            print(f"       - Patient name: '{patient_name}'")
+                            print(f"       - Amount: €{amount}")
+                            print(f"       - Date: {date}")
+                            
+                            # Check if name extraction worked (should not contain factuurnummer)
+                            if 'Knauff, Ienke' in patient_name or 'Pietersen, Jan' in patient_name:
+                                if not patient_name.startswith('202500008568') and not patient_name.startswith('202500008569'):
+                                    print(f"       ✅ Name extraction correct - no factuurnummer prefix")
+                                else:
+                                    print(f"       ❌ Name extraction failed - still contains factuurnummer")
+                                    correcties_verification_passed = False
+                            
+                            # Check currency parsing (should be positive amounts)
+                            if amount == 48.5 or amount == 1008.0:
+                                print(f"       ✅ Currency parsing correct")
+                            else:
+                                print(f"       ❌ Currency parsing incorrect - expected 48.5 or 1008.0")
+                                correcties_verification_passed = False
+                            
+                            # Check date parsing
+                            if date == '2025-02-20':
+                                print(f"       ✅ Date parsing correct (20-2-2025 → 2025-02-20)")
+                            else:
+                                print(f"       ❌ Date parsing incorrect - expected 2025-02-20")
+                                correcties_verification_passed = False
+                        
+                        if correcties_verification_passed:
+                            print(f"   ✅ CORRECTIES BULK IMPORT WORKING CORRECTLY")
+                            print(f"     - Dutch date parsing: 20-2-2025 → 2025-02-20 ✅")
+                            print(f"     - Dutch currency parsing: € -48,50 → 48.5, € 1.008,00 → 1008.0 ✅")
+                            print(f"     - Name extraction: removes factuurnummer prefix ✅")
+                            print(f"     - Tab-separated data parsing ✅")
+                        else:
+                            print(f"   ❌ CORRECTIES BULK IMPORT HAS ISSUES")
+                            all_tests_passed = False
+                    else:
+                        print(f"   ❌ Could not retrieve imported corrections for verification")
+                        all_tests_passed = False
+                else:
+                    print(f"   ❌ Expected 2 successful imports, got {successful_imports}")
+                    all_tests_passed = False
+            else:
+                print(f"❌ Correcties bulk import failed - Status: {response.status_code}")
+                try:
+                    error_detail = response.json()
+                    print(f"   Error: {error_detail}")
+                except:
+                    print(f"   Response: {response.text}")
+                all_tests_passed = False
+            
+            self.tests_run += 1
+            
+        except Exception as e:
+            print(f"❌ Correcties bulk import error: {str(e)}")
+            all_tests_passed = False
+            self.tests_run += 1
+        
+        # Final Summary
+        print(f"\n   📊 DUTCH FORMATTING AND NAME EXTRACTION TEST SUMMARY:")
+        print(f"   Testing parse_dutch_currency and extract_clean_name functions via imports")
+        
+        if all_tests_passed:
+            print(f"   ✅ ALL DUTCH FORMATTING TESTS PASSED!")
+            print(f"   ✅ Currency Parser Working:")
+            print(f"     - € 1.008,00 → 1008.00 ✅")
+            print(f"     - € -48,50 → 48.50 ✅")
+            print(f"     - € 2.500,75 → 2500.75 ✅")
+            print(f"   ✅ Name Extraction Working:")
+            print(f"     - 202500008568-Knauff, Ienke → 'Knauff, Ienke' ✅")
+            print(f"     - 202500008569-Pietersen, Jan → 'Pietersen, Jan' ✅")
+            print(f"     - Names without dash remain unchanged ✅")
+            print(f"   ✅ EPD Imports Working:")
+            print(f"     - EPD particulier with Dutch formatting ✅")
+            print(f"     - EPD zorgverzekeraar with name extraction ✅")
+            print(f"   ✅ Correcties Bulk Import Working:")
+            print(f"     - Dutch date/currency parsing ✅")
+            print(f"     - Patient name extraction ✅")
+            print(f"     - Tab-separated data handling ✅")
+        else:
+            print(f"   ❌ SOME DUTCH FORMATTING TESTS FAILED")
+            print(f"   ❌ Check the detailed output above for specific issues")
+        
+        return all_tests_passed
+
 def main():
     print("🏥 Starting Fysiotherapie Cashflow API Tests")
     print("=" * 50)
