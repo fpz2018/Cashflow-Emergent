@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
-import TransactionForm from './TransactionForm';
-import TransactionList from './TransactionList';
-import CashflowCards from './CashflowCards';
-import VerwachteBetalingen from './VerwachteBetalingen';
-import CashflowForecast from './CashflowForecast';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 const Dashboard = ({ 
   cashflowSummary, 
