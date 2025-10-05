@@ -118,15 +118,21 @@ const Dashboard = ({ onRefresh }) => {
       
       console.log('Transaction updated successfully:', response.data);
       
-      // Refresh cashflow data to show changes
-      await fetchCashflowForecast();
-      
-      // Close edit modal
+      // Close edit modal first
       setEditingTransaction(null);
       setEditForm({ beschrijving: '', bedrag: '', type: 'inkomst', datum: '' });
       
       // Show success message
       alert('Transactie succesvol bijgewerkt!');
+      
+      // Force a complete refresh of cashflow data with a small delay
+      setTimeout(async () => {
+        await fetchCashflowForecast();
+        // Also refresh parent data if available
+        if (onRefresh) {
+          await onRefresh();
+        }
+      }, 500);
       
     } catch (error) {
       console.error('=== COMPLETE ERROR DEBUG ===');
