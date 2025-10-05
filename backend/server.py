@@ -2502,6 +2502,31 @@ async def get_cashflow_forecast(days: int = 30):
                     # Skip invalid dates (like 31st in February)
                     continue
         
+        # Add overige omzet (other revenue)
+        overige_omzet_items = await db.overige_omzet.find({"recurring": True}).to_list(100)
+        for omzet in overige_omzet_items:
+            # For recurring revenue, add monthly occurrences
+            omzet_date = datetime.fromisoformat(omzet['date']).date() if isinstance(omzet['date'], str) else omzet['date']
+            
+            # Calculate next occurrences in forecast period
+            current_month = start_date.replace(day=omzet_date.day)
+            for month_offset in range(0, 3):  # Next 3 months
+                try:
+                    next_occurrence = current_month + timedelta(days=32 * month_offset)
+                    next_occurrence = next_occurrence.replace(day=omzet_date.day)
+                    
+                    if start_date <= next_occurrence <= start_date + timedelta(days=days):
+                        verwachte_betalingen.append({
+                            'datum': next_occurrence,
+                            'bedrag': omzet['amount'],
+                            'type': 'inkomst',
+                            'beschrijving': f"Overige omzet: {omzet['description']}"
+                        })
+                except ValueError:
+                    continue
+        
+        print(f"DEBUG: Total verwachte betalingen: {len(verwachte_betalingen)} items")
+        
         # Generate daily forecast
         for day_offset in range(days):
             forecast_date = start_date + timedelta(days=day_offset)
