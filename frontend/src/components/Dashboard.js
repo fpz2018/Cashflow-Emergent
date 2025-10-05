@@ -334,6 +334,14 @@ const Dashboard = ({ onRefresh }) => {
       </div>
 
       {/* Deze sectie is verplaatst naar boven */}
+
+      {/* Payment Details Tooltip */}
+      <PaymentTooltip 
+        payments={tooltip.payments}
+        type={tooltip.type}
+        visible={tooltip.visible}
+        position={tooltip.position}
+      />
     </div>
   );
 };
