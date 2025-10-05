@@ -273,12 +273,20 @@ const Dashboard = ({ onRefresh }) => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                      <span className="font-medium text-emerald-600">
+                      <span 
+                        className="font-medium text-emerald-600 cursor-help hover:bg-emerald-50 px-2 py-1 rounded transition-colors"
+                        onMouseEnter={(e) => handleMouseEnter(e, 'income', day.payments || [])}
+                        onMouseLeave={handleMouseLeave}
+                      >
                         {formatCurrency(dayIncome)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                      <span className="font-medium text-red-600">
+                      <span 
+                        className="font-medium text-red-600 cursor-help hover:bg-red-50 px-2 py-1 rounded transition-colors"
+                        onMouseEnter={(e) => handleMouseEnter(e, 'expense', day.payments || [])}
+                        onMouseLeave={handleMouseLeave}
+                      >
                         {formatCurrency(dayExpenses)}
                       </span>
                     </td>
