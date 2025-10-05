@@ -491,6 +491,122 @@ const BankReconciliation = ({ onRefresh }) => {
           )}
         </div>
       </div>
+
+      {/* Classification Modal */}
+      {showClassificationModal && selectedBankTransaction && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Kosten Classificatie
+                </h3>
+                <button
+                  onClick={() => setShowClassificationModal(false)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="mb-4">
+                <div className="bg-slate-50 p-3 rounded-lg mb-4">
+                  <div className="text-sm text-slate-600">Transactie:</div>
+                  <div className="font-medium text-red-600">
+                    {formatCurrency(selectedBankTransaction.amount)}
+                  </div>
+                  <div className="text-sm text-slate-600 mt-1">
+                    {selectedBankTransaction.description || 'Geen omschrijving'}
+                  </div>
+                  <div className="text-sm text-slate-500">
+                    Tegenpartij: {selectedBankTransaction.counterparty || 'Onbekend'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Type Kosten
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setClassificationForm({...classificationForm, type: 'vast'})}
+                      className={`p-3 border rounded-lg text-center transition-all ${
+                        classificationForm.type === 'vast'
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="font-medium">Vaste Kosten</div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        Regelmatige uitgaven
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setClassificationForm({...classificationForm, type: 'variabel'})}
+                      className={`p-3 border rounded-lg text-center transition-all ${
+                        classificationForm.type === 'variabel'
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="font-medium">Variabele Kosten</div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        Wisselende uitgaven
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Categorie Naam
+                  </label>
+                  <input
+                    type="text"
+                    value={classificationForm.categoryName}
+                    onChange={(e) => setClassificationForm({...classificationForm, categoryName: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder={classificationForm.type === 'vast' ? 'bijv. Huur, Verzekeringen' : 'bijv. Kantoorbenodigdheden, Brandstof'}
+                    required
+                  />
+                  <div className="text-xs text-slate-500 mt-1">
+                    Deze naam wordt gebruikt voor toekomstige categorisering
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowClassificationModal(false)}
+                  className="px-4 py-2 text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg hover:bg-slate-50 transition-all"
+                  disabled={loading}
+                >
+                  Annuleren
+                </button>
+                <button
+                  onClick={() => {
+                    if (classificationForm.categoryName.trim()) {
+                      handleClassifyTransaction(
+                        selectedBankTransaction.id,
+                        classificationForm.type,
+                        classificationForm.categoryName.trim()
+                      );
+                    }
+                  }}
+                  disabled={!classificationForm.categoryName.trim() || loading}
+                  className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-all"
+                >
+                  {loading ? 'Classificeren...' : 'Classificeer Kosten'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
