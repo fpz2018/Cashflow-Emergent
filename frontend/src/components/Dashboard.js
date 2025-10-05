@@ -78,30 +78,119 @@ const Dashboard = ({ onRefresh }) => {
     fetchCashflowForecast();
   }, []);
 
+  const createTooltipContent = (type, payments) => {
+    if (!payments || payments.length === 0) {
+      return (
+        <div>
+          <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#374151' }}>
+            {type === 'income' ? '💰 Inkomsten' : type === 'expense' ? '💳 Uitgaven' : '📊 Transacties'}
+          </div>
+          <div style={{ color: '#6b7280', fontSize: '14px' }}>
+            Geen {type === 'income' ? 'inkomsten' : 'uitgaven'} voor deze dag
+          </div>
+        </div>
+      );
+    }
+
+    let filteredPayments;
+    let title;
+    
+    if (type === 'income') {
+      filteredPayments = payments.filter(p => p.type === 'inkomst');
+      title = '💰 Inkomsten details:';
+    } else if (type === 'expense') {
+      filteredPayments = payments.filter(p => p.type === 'uitgave');
+      title = '💳 Uitgaven details:';
+    } else {
+      filteredPayments = payments;
+      title = '📊 Alle transacties:';
+    }
+
+    if (filteredPayments.length === 0) {
+      return (
+        <div>
+          <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#374151' }}>
+            {title}
+          </div>
+          <div style={{ color: '#6b7280', fontSize: '14px' }}>
+            Geen data beschikbaar
+          </div>
+        </div>
+      );
+    }
+
+    const total = filteredPayments.reduce((sum, p) => sum + Math.abs(p.bedrag || 0), 0);
+
+    return (
+      <div>
+        <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#374151', borderBottom: '1px solid #e5e7eb', paddingBottom: '4px' }}>
+          {title}
+        </div>
+        <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+          {filteredPayments.map((payment, idx) => (
+            <div key={idx} style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              padding: '6px 8px',
+              backgroundColor: '#f8fafc',
+              marginBottom: '4px',
+              borderRadius: '4px',
+              fontSize: '13px'
+            }}>
+              <div style={{ flex: 1, color: '#374151', marginRight: '8px' }}>
+                {payment.beschrijving || 'Geen beschrijving'}
+              </div>
+              <div style={{ 
+                fontWeight: 'bold', 
+                color: payment.type === 'inkomst' ? '#059669' : '#dc2626',
+                whiteSpace: 'nowrap'
+              }}>
+                {payment.type === 'inkomst' ? '+' : '-'}€{Math.abs(payment.bedrag || 0).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+          ))}
+        </div>
+        {type !== 'net' && (
+          <div style={{ 
+            marginTop: '8px', 
+            paddingTop: '8px', 
+            borderTop: '1px solid #e5e7eb',
+            display: 'flex',
+            justifyContent: 'space-between',
+            fontWeight: 'bold',
+            backgroundColor: '#f1f5f9',
+            padding: '8px',
+            borderRadius: '4px'
+          }}>
+            <span style={{ color: '#374151' }}>Totaal:</span>
+            <span style={{ color: type === 'income' ? '#059669' : '#dc2626' }}>
+              €{total.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const handleMouseEnter = (event, type, payments) => {
     const rect = event.target.getBoundingClientRect();
-    const scrollY = window.pageYOffset || document.documentElement.scrollTop;
-    const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
-    
-    console.log('Tooltip triggered:', { type, payments: payments?.length || 0 });
+    const content = createTooltipContent(type, payments);
     
     setTooltip({
       visible: true,
-      type: type,
-      payments: payments || [],
-      position: { 
-        x: rect.left + scrollX, 
-        y: rect.top + scrollY 
-      }
+      content: content,
+      x: rect.left + window.scrollX,
+      y: rect.top + window.scrollY
     });
   };
 
   const handleMouseLeave = () => {
     setTooltip({
       visible: false,
-      type: null,
-      payments: [],
-      position: { x: 0, y: 0 }
+      content: null,
+      x: 0,
+      y: 0
     });
   };
 
