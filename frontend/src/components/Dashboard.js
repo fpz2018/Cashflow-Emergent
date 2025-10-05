@@ -61,18 +61,6 @@ const Dashboard = ({ onRefresh }) => {
   };
 
   const handleEditTransaction = (payment, dayDate) => {
-    // Check if this is a classified cost that shouldn't be edited here
-    if (payment.beschrijving?.includes('Vaste kosten:') || payment.beschrijving?.includes('Variabele kosten:')) {
-      alert('Geclassificeerde kosten kunnen niet hier bewerkt worden.\n\nGa naar "Instellingen" → "Kosten Overzicht" om deze kosten te beheren.');
-      return;
-    }
-    
-    // Check if we have the required transaction_id
-    if (!payment.transaction_id && !payment.id) {
-      alert('Deze transactie heeft geen ID en kan niet bewerkt worden.\n\nDit zijn waarschijnlijk berekende/geschatte bedragen.');
-      return;
-    }
-    
     setEditingTransaction({ ...payment, dayDate });
     setEditForm({
       beschrijving: payment.beschrijving || '',
