@@ -2851,7 +2851,8 @@ async def edit_dashboard_transaction(
 ):
     """Edit a transaction from the dashboard forecast"""
     try:
-        print(f"DEBUG: Editing transaction - ID: {transaction_id}, Type: {transaction_type}, Description: {description}")
+        print(f"DEBUG: Editing transaction - ID: {transaction_id}, Type: {transaction_type}")
+        print(f"DEBUG: New values - Description: {description}, Amount: {amount}, Date: {date}")
         
         # Check for missing transaction_id
         if not transaction_id:
