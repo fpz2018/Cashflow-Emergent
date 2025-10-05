@@ -6,7 +6,9 @@ const API = `${BACKEND_URL}/api`;
 
 // Tooltip component for showing payment details
 const PaymentTooltip = ({ payments, type, visible, position }) => {
-  if (!visible || !payments || payments.length === 0) return null;
+  if (!visible || !payments || payments.length === 0) {
+    return null;
+  }
 
   let filteredPayments;
   let title;
@@ -22,41 +24,57 @@ const PaymentTooltip = ({ payments, type, visible, position }) => {
     title = '📊 Alle transacties:';
   }
 
-  if (filteredPayments.length === 0) return null;
+  if (!filteredPayments || filteredPayments.length === 0) {
+    return (
+      <div 
+        className="fixed z-[9999] bg-white border border-slate-400 rounded-lg shadow-xl p-3 max-w-xs"
+        style={{ 
+          left: Math.min(position.x + 10, window.innerWidth - 300), 
+          top: Math.max(position.y - 10, 10),
+          pointerEvents: 'none'
+        }}
+      >
+        <div className="text-sm text-slate-500">
+          Geen {type === 'income' ? 'inkomsten' : 'uitgaven'} voor deze dag
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 
-      className="absolute z-50 bg-white border border-slate-300 rounded-lg shadow-lg p-3 max-w-sm min-w-64"
+      className="fixed z-[9999] bg-white border border-slate-400 rounded-lg shadow-xl p-3 max-w-sm min-w-72"
       style={{ 
-        left: position.x + 10, 
-        top: position.y - 10,
-        maxHeight: '300px',
-        overflowY: 'auto'
+        left: Math.min(position.x + 10, window.innerWidth - 350), 
+        top: Math.max(position.y - 10, 10),
+        maxHeight: '400px',
+        overflowY: 'auto',
+        pointerEvents: 'none'
       }}
     >
-      <div className="text-sm font-medium mb-2 text-slate-700">
+      <div className="text-sm font-semibold mb-2 text-slate-800 border-b pb-1">
         {title}
       </div>
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         {filteredPayments.map((payment, idx) => (
-          <div key={idx} className="flex justify-between items-start gap-3 text-xs">
-            <div className="text-slate-600 flex-1">
-              {payment.beschrijving}
+          <div key={idx} className="flex justify-between items-start gap-3 text-xs bg-slate-50 p-2 rounded">
+            <div className="text-slate-700 flex-1 font-medium">
+              {payment.beschrijving || 'Geen beschrijving'}
             </div>
-            <div className={`font-medium whitespace-nowrap ${
-              payment.type === 'inkomst' ? 'text-emerald-600' : 'text-red-600'
+            <div className={`font-bold whitespace-nowrap text-sm ${
+              payment.type === 'inkomst' ? 'text-emerald-700' : 'text-red-700'
             }`}>
-              {payment.type === 'inkomst' ? '+' : '-'}€{Math.abs(payment.bedrag).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
+              {payment.type === 'inkomst' ? '+' : '-'}€{Math.abs(payment.bedrag || 0).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
             </div>
           </div>
         ))}
       </div>
       {type !== 'net' && (
-        <div className="mt-2 pt-2 border-t border-slate-200">
-          <div className="flex justify-between text-sm font-semibold">
-            <span>Totaal:</span>
-            <span className={type === 'income' ? 'text-emerald-600' : 'text-red-600'}>
-              €{filteredPayments.reduce((sum, p) => sum + Math.abs(p.bedrag), 0).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
+        <div className="mt-3 pt-2 border-t border-slate-300">
+          <div className="flex justify-between text-sm font-bold bg-slate-100 p-2 rounded">
+            <span className="text-slate-700">Totaal:</span>
+            <span className={type === 'income' ? 'text-emerald-700' : 'text-red-700'}>
+              €{filteredPayments.reduce((sum, p) => sum + Math.abs(p.bedrag || 0), 0).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
             </span>
           </div>
         </div>
