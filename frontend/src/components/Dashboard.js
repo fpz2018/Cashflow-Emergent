@@ -59,6 +59,12 @@ const Dashboard = ({ onRefresh }) => {
   const [error, setError] = useState('');
   const [cashflowData, setCashflowData] = useState(null);
   const [currentBalance, setCurrentBalance] = useState(0);
+  const [tooltip, setTooltip] = useState({
+    visible: false,
+    type: null,
+    payments: [],
+    position: { x: 0, y: 0 }
+  });
 
   // Fetch dagelijkse cashflow forecast
   const fetchCashflowForecast = async () => {
