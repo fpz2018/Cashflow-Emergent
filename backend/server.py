@@ -2419,9 +2419,14 @@ async def get_cashflow_forecast(days: int = 30):
         forecast_days = []
         start_date = date.today()
         
-        # Get current bank balance (could be stored in settings, for now calculate from transactions)
-        # In a real app, you'd store the current bank balance
-        current_balance = 0.0  # Starting point - should be configurable
+        # Get current bank balance from database
+        bank_saldos = await db.bank_saldos.find().sort([("date", -1)]).to_list(1)
+        if bank_saldos:
+            current_balance = bank_saldos[0].get('saldo', 0.0)
+        else:
+            current_balance = 0.0  # Default if no bank saldo set
+        
+        print(f"DEBUG: Starting balance from bank_saldos: €{current_balance}")
         
         # Get all verwachte betalingen
         verwachte_betalingen = []
