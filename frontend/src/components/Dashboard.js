@@ -361,13 +361,15 @@ const Dashboard = ({ onRefresh }) => {
 
       {/* Deze sectie is verplaatst naar boven */}
 
-      {/* Payment Details Tooltip */}
-      <PaymentTooltip 
-        payments={tooltip.payments}
-        type={tooltip.type}
-        visible={tooltip.visible}
-        position={tooltip.position}
-      />
+      {/* Payment Details Tooltip - render directly in DOM */}
+      {tooltip.visible && (
+        <PaymentTooltip 
+          payments={tooltip.payments}
+          type={tooltip.type}
+          visible={tooltip.visible}
+          position={tooltip.position}
+        />
+      )}
     </div>
   );
 };
