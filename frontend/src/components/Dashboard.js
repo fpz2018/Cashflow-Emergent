@@ -489,6 +489,123 @@ const Dashboard = ({ onRefresh }) => {
 
       {/* Deze sectie is verplaatst naar boven */}
 
+      {/* Edit Transaction Modal */}
+      {editingTransaction && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Transactie Bewerken
+                </h3>
+                <button
+                  onClick={() => setEditingTransaction(null)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="mb-4">
+                <div className="bg-slate-50 p-3 rounded-lg mb-4">
+                  <div className="text-sm text-slate-600">Datum:</div>
+                  <div className="font-medium">
+                    {editingTransaction.dayDate ? formatDate(editingTransaction.dayDate) : 'Onbekend'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Type Transactie
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setEditForm({...editForm, type: 'inkomst'})}
+                      className={`p-3 border rounded-lg text-center transition-all ${
+                        editForm.type === 'inkomst'
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      💰 Inkomst
+                    </button>
+                    <button
+                      onClick={() => setEditForm({...editForm, type: 'uitgave'})}
+                      className={`p-3 border rounded-lg text-center transition-all ${
+                        editForm.type === 'uitgave'
+                          ? 'border-red-500 bg-red-50 text-red-700'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      💳 Uitgave
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Beschrijving
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.beschrijving}
+                    onChange={(e) => setEditForm({...editForm, beschrijving: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Transactie beschrijving"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Bedrag (€)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editForm.bedrag}
+                    onChange={(e) => setEditForm({...editForm, bedrag: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-between gap-3 mt-6">
+                <button
+                  onClick={handleDeleteTransaction}
+                  className="px-4 py-2 text-red-600 hover:text-red-700 border border-red-300 rounded-lg hover:bg-red-50 transition-all"
+                  disabled={loading}
+                >
+                  🗑️ Verwijderen
+                </button>
+                
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setEditingTransaction(null)}
+                    className="px-4 py-2 text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg hover:bg-slate-50 transition-all"
+                    disabled={loading}
+                  >
+                    Annuleren
+                  </button>
+                  <button
+                    onClick={handleSaveTransaction}
+                    disabled={!editForm.beschrijving.trim() || !editForm.bedrag.trim() || loading}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-all"
+                  >
+                    {loading ? 'Opslaan...' : 'Opslaan'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Uitklapbare rijen geven betrouwbaar inzicht in alle transacties */}
     </div>
   );
