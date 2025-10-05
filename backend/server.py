@@ -2532,7 +2532,74 @@ async def get_cashflow_forecast(days: int = 30):
                 except ValueError:
                     continue
         
-        print(f"DEBUG: Total verwachte betalingen: {len(verwachte_betalingen)} items")
+        # Add geclassificeerde vaste kosten (from bank reconciliation)
+        # These should repeat monthly based on historical classification patterns
+        vaste_kosten_categories = await db.vaste_kosten.find({"active": True}).to_list(1000)
+        
+        # Group by category and calculate monthly average
+        vaste_kosten_monthly = {}
+        for kost in vaste_kosten_categories:
+            category = kost['category_name']
+            if category not in vaste_kosten_monthly:
+                vaste_kosten_monthly[category] = []
+            vaste_kosten_monthly[category].append(kost['amount'])
+        
+        # Add monthly recurring vaste kosten to forecast
+        for category, amounts in vaste_kosten_monthly.items():
+            monthly_average = sum(amounts) / len(amounts) if amounts else 0
+            if monthly_average > 0:
+                # Add monthly on the 15th of each month (or start date if we're already past 15th)
+                current_month_start = start_date.replace(day=1)
+                for month_offset in range(0, 2):  # Current and next month
+                    try:
+                        target_date = current_month_start + timedelta(days=32 * month_offset)
+                        target_date = target_date.replace(day=15)  # 15th of month
+                        
+                        if target_date < start_date:
+                            # If 15th already passed this month, use next month
+                            continue
+                            
+                        if start_date <= target_date <= start_date + timedelta(days=days):
+                            verwachte_betalingen.append({
+                                'datum': target_date,
+                                'bedrag': -monthly_average,  # Negative for expense
+                                'type': 'uitgave',
+                                'beschrijving': f"Vaste kosten: {category} (gemiddeld)"
+                            })
+                    except ValueError:
+                        continue
+        
+        # Add geclassificeerde variabele kosten (estimated based on recent pattern)
+        variabele_kosten_categories = await db.variabele_kosten.find({"active": True}).to_list(1000)
+        
+        # Group by category and calculate recent pattern (last 90 days)
+        recent_cutoff = start_date - timedelta(days=90)
+        variabele_kosten_recent = {}
+        
+        for kost in variabele_kosten_categories:
+            kost_date = datetime.fromisoformat(kost['date']).date() if isinstance(kost['date'], str) else kost['date']
+            if kost_date >= recent_cutoff:  # Only recent variable costs
+                category = kost['category_name']
+                if category not in variabele_kosten_recent:
+                    variabele_kosten_recent[category] = []
+                variabele_kosten_recent[category].append(kost['amount'])
+        
+        # Estimate variabele kosten frequency (monthly estimate)
+        for category, amounts in variabele_kosten_recent.items():
+            if len(amounts) > 0:
+                monthly_estimate = sum(amounts) * (30 / 90)  # Scale to monthly
+                if monthly_estimate > 10:  # Only include if significant
+                    # Add estimated variabele kosten in middle of month
+                    target_date = start_date + timedelta(days=15)
+                    if target_date <= start_date + timedelta(days=days):
+                        verwachte_betalingen.append({
+                            'datum': target_date,
+                            'bedrag': -monthly_estimate,  # Negative for expense
+                            'type': 'uitgave',
+                            'beschrijving': f"Variabele kosten: {category} (geschat)"
+                        })
+        
+        print(f"DEBUG: Total verwachte betalingen (including classified costs): {len(verwachte_betalingen)} items")
         
         # Generate daily forecast
         for day_offset in range(days):
