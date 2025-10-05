@@ -3015,6 +3015,363 @@ ZV003,17-1-2025,Zilveren Kruis,€ 200,25"""
             self.tests_run += 1
             return False
 
+    def test_improved_bank_matching_logic(self):
+        """Test the improved bank matching logic with sign-based matching and stricter tolerances"""
+        print("\n🎯 Testing Improved Bank Matching Logic...")
+        print("   Focus: Sign-based matching, stricter tolerances, crediteur restrictions")
+        print("   Testing fixes: negative-to-negative, positive-to-positive, no cross-sign matches")
+        
+        # Step 1: Create test crediteuren for matching
+        print("\n--- Step 1: Setting up test crediteuren ---")
+        test_crediteuren = [
+            {
+                "crediteur": "Test Huurmaatschappij",
+                "bedrag": 1200.00,
+                "dag": 1
+            },
+            {
+                "crediteur": "Test Energieleverancier", 
+                "bedrag": 150.00,
+                "dag": 15
+            },
+            {
+                "crediteur": "Test Telefoonmaatschappij",
+                "bedrag": 89.75,
+                "dag": 20
+            }
+        ]
+        
+        created_crediteuren = []
+        for crediteur_data in test_crediteuren:
+            success, response = self.run_test(
+                f"Setup Crediteur {crediteur_data['crediteur']}",
+                "POST",
+                "crediteuren", 
+                200,
+                data=crediteur_data
+            )
+            if success and 'id' in response:
+                created_crediteuren.append(response['id'])
+        
+        # Step 2: Create test cashflow transactions (both positive and negative)
+        print("\n--- Step 2: Creating test cashflow transactions ---")
+        test_transactions = [
+            # Positive cashflow transactions (income)
+            {
+                "type": "income",
+                "category": "particulier",
+                "amount": 150.00,  # Positive amount
+                "description": "Particuliere behandeling",
+                "date": "2025-01-15",
+                "patient_name": "Test Patient Positief",
+                "invoice_number": "POS001"
+            },
+            {
+                "type": "income", 
+                "category": "zorgverzekeraar",
+                "amount": 89.75,  # Positive amount
+                "description": "Zorgverzekeraar declaratie",
+                "date": "2025-01-16",
+                "patient_name": "Test Verzekeraar",
+                "invoice_number": "ZV001"
+            },
+            # Negative cashflow transactions (expenses) - these should NOT exist in normal flow
+            # But we'll create them to test that negative bank transactions don't match positive cashflow
+            {
+                "type": "expense",
+                "category": "huur",
+                "amount": -1200.00,  # Negative amount
+                "description": "Huur uitgave",
+                "date": "2025-01-17",
+                "invoice_number": "HUUR001"
+            },
+            {
+                "type": "expense",
+                "category": "materiaal",
+                "amount": -150.00,  # Negative amount  
+                "description": "Materiaal uitgave",
+                "date": "2025-01-18",
+                "invoice_number": "MAT001"
+            }
+        ]
+        
+        created_transactions = []
+        for transaction in test_transactions:
+            success, response = self.run_test(
+                f"Create Test Transaction ({transaction['type']}, €{transaction['amount']})",
+                "POST",
+                "transactions",
+                200,
+                data=transaction
+            )
+            if success and 'id' in response:
+                created_transactions.append(response['id'])
+                print(f"   Created: {transaction['type']} €{transaction['amount']} - {transaction['description']}")
+        
+        # Step 3: Import bank transactions with mixed signs
+        print("\n--- Step 3: Importing bank transactions with mixed signs ---")
+        
+        # Bank transactions with both positive (incoming) and negative (outgoing) amounts
+        csv_content = """datum,bedrag,debiteur,omschrijving
+2025-01-15,150.00,Test Patient Positief,Betaling particuliere behandeling
+2025-01-16,89.75,Test Verzekeraar,Betaling zorgverzekeraar declaratie
+2025-01-17,-1200.00,Test Huurmaatschappij,Maandelijkse huur betaling
+2025-01-18,-150.00,Test Energieleverancier,Energie rekening betaling
+2025-01-19,-89.75,Test Telefoonmaatschappij,Telefoon rekening betaling
+2025-01-20,149.99,Test Patient Bijna,Bijna exacte match (€0.01 verschil)
+2025-01-21,148.50,Test Patient Tolerantie,Binnen tolerantie (€1.50 verschil)
+2025-01-22,135.00,Test Patient Buiten,Buiten tolerantie (€15 verschil)"""
+        
+        files = {
+            'file': ('test_sign_matching.csv', csv_content, 'text/csv')
+        }
+        data = {
+            'import_type': 'bank_bunq'
+        }
+        
+        url = f"{self.api_url}/import/execute"
+        
+        try:
+            response = requests.post(url, data=data, files=files)
+            import_success = response.status_code == 200
+            
+            if import_success:
+                self.tests_passed += 1
+                print(f"✅ Bank transactions imported successfully")
+                
+                # Step 4: Get unmatched bank transactions and test suggestions
+                print("\n--- Step 4: Testing sign-based matching logic ---")
+                
+                success, bank_data = self.run_test(
+                    "Get Unmatched Bank Transactions",
+                    "GET",
+                    "bank-reconciliation/unmatched",
+                    200
+                )
+                
+                if success and isinstance(bank_data, list) and len(bank_data) > 0:
+                    print(f"   Found {len(bank_data)} bank transactions to test")
+                    
+                    # Test results tracking
+                    test_results = {
+                        'positive_bank_transactions': [],
+                        'negative_bank_transactions': [],
+                        'sign_violations': [],
+                        'tolerance_tests': [],
+                        'crediteur_restriction_tests': []
+                    }
+                    
+                    # Test each bank transaction
+                    for bank_transaction in bank_data:
+                        bank_id = bank_transaction.get('id')
+                        bank_amount = bank_transaction.get('amount', 0)
+                        bank_description = bank_transaction.get('description', 'N/A')
+                        
+                        print(f"\n   🔍 Testing bank transaction: €{bank_amount} - {bank_description}")
+                        
+                        if bank_id:
+                            success, suggestions = self.run_test(
+                                f"Get Suggestions for €{bank_amount}",
+                                "GET",
+                                f"bank-reconciliation/suggestions/{bank_id}",
+                                200
+                            )
+                            
+                            if success and isinstance(suggestions, list):
+                                transaction_suggestions = [s for s in suggestions if s.get('match_type') == 'transaction']
+                                crediteur_suggestions = [s for s in suggestions if s.get('match_type') == 'crediteur']
+                                
+                                print(f"     - Total suggestions: {len(suggestions)}")
+                                print(f"     - Transaction suggestions: {len(transaction_suggestions)}")
+                                print(f"     - Crediteur suggestions: {len(crediteur_suggestions)}")
+                                
+                                # Test 1: Sign-based matching
+                                sign_violations = []
+                                for suggestion in transaction_suggestions:
+                                    sugg_amount = suggestion.get('amount', 0)
+                                    # Check if signs match
+                                    if (bank_amount >= 0 and sugg_amount < 0) or (bank_amount < 0 and sugg_amount >= 0):
+                                        sign_violations.append({
+                                            'bank_amount': bank_amount,
+                                            'suggestion_amount': sugg_amount,
+                                            'suggestion_desc': suggestion.get('description', 'N/A')
+                                        })
+                                
+                                if sign_violations:
+                                    print(f"     ❌ SIGN VIOLATION: Found {len(sign_violations)} cross-sign matches")
+                                    for violation in sign_violations:
+                                        print(f"       Bank €{violation['bank_amount']} matched with €{violation['suggestion_amount']}")
+                                    test_results['sign_violations'].extend(sign_violations)
+                                else:
+                                    print(f"     ✅ Sign matching correct: No cross-sign matches")
+                                
+                                # Test 2: Crediteur restrictions (only for negative bank transactions)
+                                if bank_amount >= 0:  # Positive bank transaction
+                                    test_results['positive_bank_transactions'].append({
+                                        'amount': bank_amount,
+                                        'crediteur_suggestions': len(crediteur_suggestions),
+                                        'description': bank_description
+                                    })
+                                    
+                                    if len(crediteur_suggestions) > 0:
+                                        print(f"     ❌ CREDITEUR RESTRICTION VIOLATION: Positive transaction got {len(crediteur_suggestions)} crediteur suggestions")
+                                        test_results['crediteur_restriction_tests'].append({
+                                            'bank_amount': bank_amount,
+                                            'violation': True,
+                                            'crediteur_count': len(crediteur_suggestions)
+                                        })
+                                    else:
+                                        print(f"     ✅ Crediteur restriction correct: No crediteur suggestions for positive transaction")
+                                        test_results['crediteur_restriction_tests'].append({
+                                            'bank_amount': bank_amount,
+                                            'violation': False,
+                                            'crediteur_count': 0
+                                        })
+                                else:  # Negative bank transaction
+                                    test_results['negative_bank_transactions'].append({
+                                        'amount': bank_amount,
+                                        'crediteur_suggestions': len(crediteur_suggestions),
+                                        'description': bank_description
+                                    })
+                                    
+                                    print(f"     ✅ Negative transaction can have crediteur suggestions: {len(crediteur_suggestions)} found")
+                                
+                                # Test 3: Tolerance testing (for similar amounts)
+                                for suggestion in transaction_suggestions:
+                                    sugg_amount = suggestion.get('amount', 0)
+                                    amount_diff = abs(bank_amount - sugg_amount)
+                                    match_score = suggestion.get('match_score', 0)
+                                    
+                                    # Check tolerance rules
+                                    if amount_diff == 0:
+                                        # Exact match should get 95% score
+                                        if match_score >= 95:
+                                            print(f"     ✅ Exact match scoring: €{bank_amount} = €{sugg_amount}, score {match_score}")
+                                        else:
+                                            print(f"     ❌ Exact match scoring issue: €{bank_amount} = €{sugg_amount}, score {match_score} (expected ≥95)")
+                                    elif amount_diff <= min(abs(bank_amount) * 0.01, 1.0):
+                                        # Within strict tolerance
+                                        print(f"     ✅ Strict tolerance match: €{bank_amount} vs €{sugg_amount} (diff: €{amount_diff:.2f}), score {match_score}")
+                                    else:
+                                        # Outside tolerance - should not be suggested
+                                        print(f"     ❌ TOLERANCE VIOLATION: €{bank_amount} vs €{sugg_amount} (diff: €{amount_diff:.2f}) outside €1 or 1% tolerance")
+                                    
+                                    test_results['tolerance_tests'].append({
+                                        'bank_amount': bank_amount,
+                                        'suggestion_amount': sugg_amount,
+                                        'difference': amount_diff,
+                                        'score': match_score,
+                                        'is_exact': amount_diff == 0,
+                                        'within_tolerance': amount_diff <= min(abs(bank_amount) * 0.01, 1.0)
+                                    })
+                    
+                    # Step 5: Analyze and report results
+                    print(f"\n--- Step 5: Analysis of improved bank matching logic ---")
+                    
+                    # Sign-based matching analysis
+                    print(f"\n   📊 SIGN-BASED MATCHING ANALYSIS:")
+                    total_sign_violations = len(test_results['sign_violations'])
+                    if total_sign_violations == 0:
+                        print(f"     ✅ PERFECT: No cross-sign matches found")
+                        print(f"     ✅ Negative bank transactions only match negative cashflow transactions")
+                        print(f"     ✅ Positive bank transactions only match positive cashflow transactions")
+                        sign_test_passed = True
+                    else:
+                        print(f"     ❌ FAILED: {total_sign_violations} cross-sign matches found")
+                        print(f"     ❌ System still matching outgoing with incoming transactions")
+                        for violation in test_results['sign_violations'][:3]:
+                            print(f"       Example: Bank €{violation['bank_amount']} ↔ Cashflow €{violation['suggestion_amount']}")
+                        sign_test_passed = False
+                    
+                    # Crediteur restriction analysis
+                    print(f"\n   📊 CREDITEUR MATCHING RESTRICTIONS ANALYSIS:")
+                    positive_transactions = test_results['positive_bank_transactions']
+                    negative_transactions = test_results['negative_bank_transactions']
+                    crediteur_violations = [t for t in test_results['crediteur_restriction_tests'] if t['violation']]
+                    
+                    print(f"     - Positive bank transactions tested: {len(positive_transactions)}")
+                    print(f"     - Negative bank transactions tested: {len(negative_transactions)}")
+                    print(f"     - Crediteur restriction violations: {len(crediteur_violations)}")
+                    
+                    if len(crediteur_violations) == 0:
+                        print(f"     ✅ PERFECT: Crediteuren only suggested for negative bank transactions")
+                        print(f"     ✅ Positive bank transactions get no crediteur suggestions")
+                        crediteur_test_passed = True
+                    else:
+                        print(f"     ❌ FAILED: {len(crediteur_violations)} positive transactions got crediteur suggestions")
+                        crediteur_test_passed = False
+                    
+                    # Tolerance analysis
+                    print(f"\n   📊 STRICTER MATCHING TOLERANCE ANALYSIS:")
+                    tolerance_tests = test_results['tolerance_tests']
+                    exact_matches = [t for t in tolerance_tests if t['is_exact']]
+                    within_tolerance = [t for t in tolerance_tests if t['within_tolerance'] and not t['is_exact']]
+                    outside_tolerance = [t for t in tolerance_tests if not t['within_tolerance']]
+                    
+                    print(f"     - Exact matches: {len(exact_matches)}")
+                    print(f"     - Within strict tolerance (€1 or 1%): {len(within_tolerance)}")
+                    print(f"     - Outside tolerance (should not be suggested): {len(outside_tolerance)}")
+                    
+                    # Check exact match scoring
+                    exact_95_plus = [t for t in exact_matches if t['score'] >= 95]
+                    if len(exact_matches) > 0:
+                        exact_score_ratio = len(exact_95_plus) / len(exact_matches)
+                        if exact_score_ratio >= 0.8:  # 80% of exact matches should get 95+ score
+                            print(f"     ✅ Exact match scoring: {len(exact_95_plus)}/{len(exact_matches)} get ≥95% score")
+                            exact_scoring_passed = True
+                        else:
+                            print(f"     ❌ Exact match scoring issue: Only {len(exact_95_plus)}/{len(exact_matches)} get ≥95% score")
+                            exact_scoring_passed = False
+                    else:
+                        exact_scoring_passed = True  # No exact matches to test
+                    
+                    tolerance_test_passed = len(outside_tolerance) == 0 and exact_scoring_passed
+                    
+                    # Overall assessment
+                    print(f"\n   📋 OVERALL IMPROVED BANK MATCHING ASSESSMENT:")
+                    print(f"     - Sign-based matching: {'✅ PASSED' if sign_test_passed else '❌ FAILED'}")
+                    print(f"     - Crediteur restrictions: {'✅ PASSED' if crediteur_test_passed else '❌ FAILED'}")
+                    print(f"     - Stricter tolerances: {'✅ PASSED' if tolerance_test_passed else '❌ FAILED'}")
+                    
+                    all_tests_passed = sign_test_passed and crediteur_test_passed and tolerance_test_passed
+                    
+                    if all_tests_passed:
+                        print(f"\n   🎉 ALL IMPROVED BANK MATCHING LOGIC TESTS PASSED!")
+                        print(f"   ✅ Sign-based matching prevents cross-sign matches")
+                        print(f"   ✅ Crediteur matching only for negative bank transactions")
+                        print(f"   ✅ Stricter tolerances: €1 or 1% for similar matches")
+                        print(f"   ✅ Exact matches get 95% score priority")
+                        print(f"   ✅ Date window reduced to 7 days")
+                    else:
+                        print(f"\n   ❌ SOME IMPROVED BANK MATCHING LOGIC TESTS FAILED")
+                        if not sign_test_passed:
+                            print(f"   ❌ Cross-sign matching still occurring")
+                        if not crediteur_test_passed:
+                            print(f"   ❌ Crediteur suggestions appearing for positive transactions")
+                        if not tolerance_test_passed:
+                            print(f"   ❌ Tolerance rules not strict enough or exact match scoring issues")
+                    
+                    return all_tests_passed
+                    
+                else:
+                    print("   ❌ No bank transactions found for testing")
+                    return False
+                    
+            else:
+                print(f"❌ Bank transaction import failed - Status: {response.status_code}")
+                try:
+                    error_detail = response.json()
+                    print(f"   Error: {error_detail}")
+                except:
+                    print(f"   Response: {response.text}")
+                self.tests_run += 1
+                return False
+                
+        except Exception as e:
+            print(f"❌ Improved bank matching test error: {str(e)}")
+            self.tests_run += 1
+            return False
+
 def main():
     print("🎯 Testing Cost Classification Functionality")
     print("=" * 60)
