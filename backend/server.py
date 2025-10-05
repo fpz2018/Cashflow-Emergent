@@ -2843,7 +2843,7 @@ async def get_variabele_kosten():
 # Dashboard Transaction Edit Endpoints
 @api_router.put("/dashboard/transaction/edit")
 async def edit_dashboard_transaction(
-    transaction_id: str = Query(..., description="Transaction ID or identifier"),
+    transaction_id: str = Query(None, description="Transaction ID or identifier"),
     transaction_type: str = Query(..., description="Type of transaction: declaratie, crediteur, overige_omzet"),
     description: str = Query(..., description="New description"),
     amount: float = Query(..., description="New amount (positive for income, negative for expense)"),
