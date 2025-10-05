@@ -2486,7 +2486,14 @@ async def get_cashflow_forecast(days: int = 30):
                         'datum': verwachte_datum,
                         'bedrag': corrected_amount,  # Use corrected amount
                         'type': 'inkomst',
-                        'beschrijving': f"Declaratie {trans.get('invoice_number', '')} (gecorrigeerd: €{corrected_amount:.2f})" if corrected_amount != original_amount else f"Declaratie {trans.get('invoice_number', '')}"
+                        'beschrijving': f"Declaratie {trans.get('invoice_number', '')} (gecorrigeerd: €{corrected_amount:.2f})" if corrected_amount != original_amount else f"Declaratie {trans.get('invoice_number', '')}",
+                        'transaction_id': trans['id'],
+                        'transaction_type': 'declaratie',
+                        'original_data': {
+                            'patient_name': trans.get('patient_name', ''),
+                            'invoice_number': trans.get('invoice_number', ''),
+                            'category': trans.get('category', '')
+                        }
                     })
         
         # Crediteur betalingen (uitgaven)
