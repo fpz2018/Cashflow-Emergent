@@ -118,6 +118,11 @@ const Dashboard = ({ onRefresh }) => {
       
       console.log('Transaction updated successfully:', response.data);
       
+      // Check if date was changed
+      const originalDate = editingTransaction.dayDate;
+      const newDate = editForm.datum;
+      const dateChanged = originalDate !== newDate;
+      
       // Close edit modal first
       setEditingTransaction(null);
       setEditForm({ beschrijving: '', bedrag: '', type: 'inkomst', datum: '' });
@@ -125,14 +130,21 @@ const Dashboard = ({ onRefresh }) => {
       // Show success message
       alert('Transactie succesvol bijgewerkt!');
       
-      // Force a complete refresh of cashflow data with a small delay
-      setTimeout(async () => {
-        await fetchCashflowForecast();
-        // Also refresh parent data if available
-        if (onRefresh) {
-          await onRefresh();
-        }
-      }, 500);
+      if (dateChanged) {
+        // If date was changed, force a complete page refresh to show transaction on correct date
+        alert('Datum gewijzigd - pagina wordt ververst om transactie op juiste datum te tonen.');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        // For other changes, just refresh data
+        setTimeout(async () => {
+          await fetchCashflowForecast();
+          if (onRefresh) {
+            await onRefresh();
+          }
+        }, 500);
+      }
       
     } catch (error) {
       console.error('=== COMPLETE ERROR DEBUG ===');
