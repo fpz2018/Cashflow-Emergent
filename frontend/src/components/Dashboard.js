@@ -141,22 +141,45 @@ const Dashboard = ({ onRefresh }) => {
   };
 
   const handleDeleteTransaction = async () => {
-    if (!window.confirm('Weet u zeker dat u deze transactie wilt verwijderen?\n\nLet op: Deze functie vereist nog backend implementatie.')) return;
+    if (!window.confirm('Weet u zeker dat u deze transactie wilt verwijderen?')) return;
     
     try {
       setLoading(true);
       setError('');
 
-      console.log('Would delete transaction:', editingTransaction);
+      console.log('Deleting transaction:', editingTransaction);
       
-      alert('Verwijder functie vereist nog backend implementatie.' +
-            '\nVoor nu kunt u transacties verwijderen via:' +
-            '\n1. Data Setup → Data Cleanup' +
-            '\n2. Of via Import & Reconciliatie opnieuw importeren');
+      // Determine transaction type
+      let transactionType = 'declaratie'; // Default
+      let transactionId = editingTransaction.transaction_id || editingTransaction.id;
+      
+      if (editingTransaction.transaction_type) {
+        transactionType = editingTransaction.transaction_type;
+      } else if (editingTransaction.beschrijving?.includes('Betaling')) {
+        transactionType = 'crediteur';
+      } else if (editingTransaction.beschrijving?.includes('Overige omzet')) {
+        transactionType = 'overige_omzet';
+      }
+      
+      // Call the backend delete endpoint
+      const response = await axios.delete(`${API}/dashboard/transaction/delete`, {
+        params: {
+          transaction_id: transactionId,
+          transaction_type: transactionType
+        }
+      });
+      
+      console.log('Transaction deleted successfully:', response.data);
+      
+      // Refresh cashflow data to show changes
+      await fetchCashflowForecast();
       
       // Close edit modal
       setEditingTransaction(null);
       setEditForm({ beschrijving: '', bedrag: '', type: 'inkomst', datum: '' });
+      
+      // Show success message
+      alert('Transactie succesvol verwijderd!');
       
     } catch (error) {
       console.error('Error deleting transaction:', error);
