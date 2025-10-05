@@ -186,7 +186,23 @@ const Dashboard = ({ onRefresh }) => {
       
     } catch (error) {
       console.error('Error deleting transaction:', error);
-      setError(`Fout bij verwijderen transactie: ${error.response?.data?.detail || error.message}`);
+      console.error('Error response:', error.response);
+      
+      let errorMessage = 'Onbekende fout bij verwijderen transactie';
+      
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.detail) {
+          errorMessage = error.response.data.detail;
+        } else {
+          errorMessage = JSON.stringify(error.response.data);
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(`Fout bij verwijderen transactie: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
