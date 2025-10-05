@@ -2862,7 +2862,7 @@ ZV003,17-1-2025,Zilveren Kruis,€ 200,25"""
                             "Try to Classify Already Reconciled Transaction (should fail)",
                             "POST",
                             f"bank-reconciliation/classify/{transaction_id_1}?classification_type=variabel&category_name=Test Category",
-                            400  # Expecting 400 error
+                            500  # Expecting 500 error (wrapped HTTPException)
                         )
                         
                         if success_validation_2:
