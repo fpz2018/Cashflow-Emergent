@@ -513,7 +513,7 @@ const Dashboard = ({ onRefresh }) => {
               
               <div className="mb-4">
                 <div className="bg-slate-50 p-3 rounded-lg mb-4">
-                  <div className="text-sm text-slate-600">Datum:</div>
+                  <div className="text-sm text-slate-600">Originele datum:</div>
                   <div className="font-medium">
                     {editingTransaction.dayDate ? formatDate(editingTransaction.dayDate) : 'Onbekend'}
                   </div>
