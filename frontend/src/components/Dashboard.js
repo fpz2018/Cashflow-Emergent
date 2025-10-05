@@ -16,7 +16,8 @@ const Dashboard = ({ onRefresh }) => {
   const [editForm, setEditForm] = useState({
     beschrijving: '',
     bedrag: '',
-    type: 'inkomst'
+    type: 'inkomst',
+    datum: ''
   });
 
   // Fetch dagelijkse cashflow forecast
