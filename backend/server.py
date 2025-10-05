@@ -2855,7 +2855,12 @@ async def edit_dashboard_transaction(
         
         # Check for missing transaction_id
         if not transaction_id:
-            raise HTTPException(status_code=400, detail="transaction_id is required but was not provided")
+            # Try to generate ID from description and amount for legacy transactions
+            if description and amount:
+                transaction_id = f"legacy_{description}_{abs(amount)}".replace(" ", "_").replace(":", "").replace("-", "_")
+                print(f"DEBUG: Generated fallback transaction_id: {transaction_id}")
+            else:
+                raise HTTPException(status_code=400, detail="transaction_id is required but was not provided and cannot be generated from available data")
         
         # Validate date format
         try:
