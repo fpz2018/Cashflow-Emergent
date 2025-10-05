@@ -158,12 +158,6 @@ function App() {
                   <>
                     {activeView === 'dashboard' && (
                       <Dashboard 
-                        cashflowSummary={cashflowSummary}
-                        transactions={transactions}
-                        loading={loading}
-                        onCreateTransaction={createTransaction}
-                        onUpdateTransaction={updateTransaction}
-                        onDeleteTransaction={deleteTransaction}
                         onRefresh={fetchCashflowSummary}
                       />
                     )}
