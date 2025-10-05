@@ -2431,12 +2431,13 @@ async def get_cashflow_forecast(days: int = 30):
         # Get all verwachte betalingen
         verwachte_betalingen = []
         
-        # Declaratie betalingen (inkomsten)
+        # Declaratie betalingen (inkomsten) - ALLE ongereconcilieerde inkomsten
         transactions = await db.transactions.find({
             "type": "income",
-            "category": "zorgverzekeraar", 
-            "reconciled": False
+            "reconciled": False  # Include both zorgverzekeraar AND particulier
         }).to_list(1000)
+        
+        print(f"DEBUG: Found {len(transactions)} unreconciled income transactions for forecast")
         
         verzekeraars = await db.verzekeraars.find({"actief": True}).to_list(1000)
         verzekeraars_dict = {v['naam']: v['termijn'] for v in verzekeraars}
