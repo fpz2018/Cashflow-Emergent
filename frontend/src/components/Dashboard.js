@@ -78,16 +78,31 @@ const Dashboard = ({ onRefresh }) => {
       console.log('Editing transaction:', editingTransaction);
       console.log('Form data:', editForm);
       
-      // Determine transaction type from the description or original data
+      // Determine transaction type and ID from the description or original data
       let transactionType = 'declaratie'; // Default
       let transactionId = editingTransaction.transaction_id || editingTransaction.id;
       
       if (editingTransaction.transaction_type) {
         transactionType = editingTransaction.transaction_type;
+      } else if (editingTransaction.beschrijving?.includes('Vaste kosten:')) {
+        transactionType = 'vaste_kosten';
+        // For vaste kosten, use category name as identifier
+        transactionId = editingTransaction.beschrijving.replace('Vaste kosten: ', '').replace(' (gemiddeld)', '');
+      } else if (editingTransaction.beschrijving?.includes('Variabele kosten:')) {
+        transactionType = 'variabele_kosten';  
+        // For variabele kosten, use category name as identifier
+        transactionId = editingTransaction.beschrijving.replace('Variabele kosten: ', '').replace(' (geschat)', '');
       } else if (editingTransaction.beschrijving?.includes('Betaling')) {
         transactionType = 'crediteur';
       } else if (editingTransaction.beschrijving?.includes('Overige omzet')) {
         transactionType = 'overige_omzet';
+      }
+      
+      // Ensure we have some form of ID
+      if (!transactionId) {
+        // Generate a temporary ID based on description and amount
+        transactionId = `temp_${editingTransaction.beschrijving}_${editingTransaction.bedrag}`.replace(/[^a-zA-Z0-9]/g, '_');
+        console.log('Generated temporary ID:', transactionId);
       }
       
       // Call the backend edit endpoint
