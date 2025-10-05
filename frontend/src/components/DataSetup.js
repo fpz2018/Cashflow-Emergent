@@ -470,6 +470,11 @@ const DataSetup = () => {
         <CorrectieManager />
       )}
 
+      {/* Kosten Overzicht Section */}
+      {activeSection === 'kosten' && (
+        <KostenOverzicht />
+      )}
+
       {/* Data Cleanup Section */}
       {activeSection === 'cleanup' && (
         <DataCleanup />
