@@ -65,7 +65,8 @@ const Dashboard = ({ onRefresh }) => {
     setEditForm({
       beschrijving: payment.beschrijving || '',
       bedrag: Math.abs(payment.bedrag || 0).toString(),
-      type: payment.type
+      type: payment.type,
+      datum: dayDate || new Date().toISOString().split('T')[0]
     });
   };
 
