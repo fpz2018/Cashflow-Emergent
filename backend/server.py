@@ -2431,13 +2431,17 @@ async def get_cashflow_forecast(days: int = 30):
         # Get all verwachte betalingen
         verwachte_betalingen = []
         
-        # Declaratie betalingen (inkomsten) - ALLE ongereconcilieerde inkomsten
+        # Declaratie betalingen (inkomsten) - Only include recent unreconciled income that will result in future payments
+        # Don't include old transactions that are unlikely to be paid
+        min_transaction_date = start_date - timedelta(days=60)  # Only transactions from last 60 days
+        
         transactions = await db.transactions.find({
             "type": "income",
-            "reconciled": False  # Include both zorgverzekeraar AND particulier
-        }).to_list(1000)
+            "reconciled": False,
+            "date": {"$gte": min_transaction_date.isoformat()}  # Only recent transactions
+        }).to_list(500)  # Reduced limit
         
-        print(f"DEBUG: Found {len(transactions)} unreconciled income transactions for forecast")
+        print(f"DEBUG: Found {len(transactions)} recent unreconciled income transactions for forecast (last 60 days)")
         
         verzekeraars = await db.verzekeraars.find({"actief": True}).to_list(1000)
         verzekeraars_dict = {v['naam']: v['termijn'] for v in verzekeraars}
@@ -2453,34 +2457,37 @@ async def get_cashflow_forecast(days: int = 30):
                     termijn = verzekeraar_termijn
                     break
             
-            # Apply any corrections to this transaction
-            original_amount = trans['amount']
-            corrected_amount = original_amount
+            # Calculate expected payment date
+            verwachte_datum = transaction_date + timedelta(days=termijn)
             
-            # Find corrections for this transaction
-            corrections = await db.correcties.find({
-                "original_transaction_id": trans['id'],
-                "matched": True
-            }).to_list(10)
+            # Determine payment terms based on category
+            if trans.get('category') == 'particulier':
+                # Particuliere patiënten betalen meestal direct
+                verwachte_datum = transaction_date + timedelta(days=7)  # 1 week
             
-            for correction in corrections:
-                corrected_amount += correction.get('amount', 0)  # Corrections are usually negative
-            
-            # Only include if there's still an amount to expect after corrections
-            if corrected_amount > 0:
-                verwachte_datum = transaction_date + timedelta(days=termijn)
+            # Only include if payment date is in the future (within forecast period)
+            if verwachte_datum >= start_date and verwachte_datum <= start_date + timedelta(days=days):
+                # Apply any corrections to this transaction
+                original_amount = trans['amount']
+                corrected_amount = original_amount
                 
-                # Determine payment terms based on category
-                if trans.get('category') == 'particulier':
-                    # Particuliere patiënten betalen meestal direct
-                    verwachte_datum = transaction_date + timedelta(days=7)  # 1 week
+                # Find corrections for this transaction
+                corrections = await db.correcties.find({
+                    "original_transaction_id": trans['id'],
+                    "matched": True
+                }).to_list(10)
                 
-                verwachte_betalingen.append({
-                    'datum': verwachte_datum,
-                    'bedrag': corrected_amount,  # Use corrected amount
-                    'type': 'inkomst',
-                    'beschrijving': f"Declaratie {trans.get('invoice_number', '')} (gecorrigeerd: €{corrected_amount:.2f})" if corrected_amount != original_amount else f"Declaratie {trans.get('invoice_number', '')}"
-                })
+                for correction in corrections:
+                    corrected_amount += correction.get('amount', 0)  # Corrections are usually negative
+                
+                # Only include if there's still an amount to expect after corrections
+                if corrected_amount > 0:
+                    verwachte_betalingen.append({
+                        'datum': verwachte_datum,
+                        'bedrag': corrected_amount,  # Use corrected amount
+                        'type': 'inkomst',
+                        'beschrijving': f"Declaratie {trans.get('invoice_number', '')} (gecorrigeerd: €{corrected_amount:.2f})" if corrected_amount != original_amount else f"Declaratie {trans.get('invoice_number', '')}"
+                    })
         
         # Crediteur betalingen (uitgaven)
         crediteuren = await db.crediteuren.find({"actief": True}).to_list(1000)
