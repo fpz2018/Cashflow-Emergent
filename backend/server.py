@@ -2820,6 +2820,149 @@ async def get_variabele_kosten():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching variabele kosten: {str(e)}")
 
+# Dashboard Transaction Edit Endpoints
+@api_router.put("/dashboard/transaction/edit")
+async def edit_dashboard_transaction(
+    transaction_id: str = Query(..., description="Transaction ID or identifier"),
+    transaction_type: str = Query(..., description="Type of transaction: declaratie, crediteur, overige_omzet"),
+    description: str = Query(..., description="New description"),
+    amount: float = Query(..., description="New amount (positive for income, negative for expense)"),
+    date: str = Query(..., description="New date in YYYY-MM-DD format")
+):
+    """Edit a transaction from the dashboard forecast"""
+    try:
+        print(f"DEBUG: Editing transaction - ID: {transaction_id}, Type: {transaction_type}")
+        
+        # Validate date format
+        try:
+            datetime.fromisoformat(date)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        
+        # Determine which collection to update based on transaction type
+        if transaction_type == "declaratie":
+            # Update in transactions collection
+            update_data = {
+                "description": description,
+                "amount": amount,
+                "date": date,
+                "type": "income" if amount > 0 else "expense"
+            }
+            
+            result = await db.transactions.update_one(
+                {"id": transaction_id},
+                {"$set": update_data}
+            )
+            
+            if result.matched_count == 0:
+                raise HTTPException(status_code=404, detail="Declaratie transactie niet gevonden")
+                
+        elif transaction_type == "crediteur":
+            # Extract crediteur name from description and update crediteuren collection
+            if description.startswith("Betaling "):
+                crediteur_naam = description.replace("Betaling ", "")
+            else:
+                crediteur_naam = description
+            
+            # Find the crediteur by name pattern
+            crediteuren = await db.crediteuren.find({}).to_list(1000)
+            target_crediteur = None
+            
+            for crediteur in crediteuren:
+                if crediteur_naam.lower() in crediteur.get('crediteur', '').lower() or crediteur.get('crediteur', '').lower() in crediteur_naam.lower():
+                    target_crediteur = crediteur
+                    break
+            
+            if not target_crediteur:
+                raise HTTPException(status_code=404, detail="Crediteur niet gevonden")
+            
+            update_data = {
+                "crediteur": crediteur_naam,
+                "bedrag": abs(amount),  # Crediteuren always store positive amounts
+                "dag": target_crediteur.get('dag', 1)  # Keep existing payment day
+            }
+            
+            result = await db.crediteuren.update_one(
+                {"id": target_crediteur['id']},
+                {"$set": update_data}
+            )
+            
+        elif transaction_type == "overige_omzet":
+            # Update in overige_omzet collection
+            update_data = {
+                "description": description,
+                "amount": amount,
+                "date": date
+            }
+            
+            result = await db.overige_omzet.update_one(
+                {"id": transaction_id},
+                {"$set": update_data}
+            )
+            
+            if result.matched_count == 0:
+                raise HTTPException(status_code=404, detail="Overige omzet transactie niet gevonden")
+                
+        else:
+            raise HTTPException(status_code=400, detail="Unknown transaction type")
+        
+        return {
+            "message": "Transactie succesvol bijgewerkt",
+            "transaction_id": transaction_id,
+            "transaction_type": transaction_type,
+            "updated_description": description,
+            "updated_amount": amount,
+            "updated_date": date
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating transaction: {str(e)}")
+
+@api_router.delete("/dashboard/transaction/delete")
+async def delete_dashboard_transaction(
+    transaction_id: str = Query(..., description="Transaction ID or identifier"),
+    transaction_type: str = Query(..., description="Type of transaction: declaratie, crediteur, overige_omzet")
+):
+    """Delete a transaction from the dashboard forecast"""
+    try:
+        print(f"DEBUG: Deleting transaction - ID: {transaction_id}, Type: {transaction_type}")
+        
+        if transaction_type == "declaratie":
+            # Delete from transactions collection
+            result = await db.transactions.delete_one({"id": transaction_id})
+            
+            if result.deleted_count == 0:
+                raise HTTPException(status_code=404, detail="Declaratie transactie niet gevonden")
+                
+        elif transaction_type == "crediteur":
+            # For crediteuren, we don't delete but mark as inactive
+            result = await db.crediteuren.update_one(
+                {"id": transaction_id},
+                {"$set": {"actief": False}}
+            )
+            
+            if result.matched_count == 0:
+                raise HTTPException(status_code=404, detail="Crediteur niet gevonden")
+                
+        elif transaction_type == "overige_omzet":
+            # Delete from overige_omzet collection
+            result = await db.overige_omzet.delete_one({"id": transaction_id})
+            
+            if result.deleted_count == 0:
+                raise HTTPException(status_code=404, detail="Overige omzet transactie niet gevonden")
+                
+        else:
+            raise HTTPException(status_code=400, detail="Unknown transaction type")
+        
+        return {
+            "message": "Transactie succesvol verwijderd",
+            "transaction_id": transaction_id,
+            "transaction_type": transaction_type
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting transaction: {str(e)}")
+
 # Legacy routes (keep for compatibility)
 @api_router.get("/")
 async def root():
