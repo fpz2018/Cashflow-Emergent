@@ -198,14 +198,25 @@ const Dashboard = ({ onRefresh }) => {
                 </h4>
                 <div className="space-y-2">
                   {inkomsten.map((payment, idx) => (
-                    <div key={idx} className="flex justify-between items-center bg-emerald-50 p-3 rounded-lg">
+                    <div key={idx} className="flex justify-between items-center bg-emerald-50 p-3 rounded-lg hover:bg-emerald-100 transition-colors">
                       <div className="flex-1">
                         <div className="text-sm font-medium text-slate-800">
                           {payment.beschrijving || 'Geen beschrijving'}
                         </div>
                       </div>
-                      <div className="text-emerald-700 font-bold">
-                        +{formatCurrency(Math.abs(payment.bedrag || 0))}
+                      <div className="flex items-center gap-2">
+                        <div className="text-emerald-700 font-bold">
+                          +{formatCurrency(Math.abs(payment.bedrag || 0))}
+                        </div>
+                        <button
+                          onClick={() => handleEditTransaction(payment, day.date)}
+                          className="p-1 text-slate-500 hover:text-emerald-700 hover:bg-white rounded transition-colors"
+                          title="Bewerk transactie"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
                   ))}
