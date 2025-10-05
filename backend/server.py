@@ -1459,64 +1459,67 @@ async def get_reconciliation_suggestions(bank_transaction_id: str):
                             "match_reason": f"Zeer vergelijkbaar bedrag (±€{amount_tolerance:.2f})"
                         })
         
-        # Find potential crediteur matches (always check for crediteuren)
-        # Note: checking for all transactions since bank data format may vary
-        crediteuren = await db.crediteuren.find({"actief": True}).to_list(20)
-        print(f"DEBUG: Found {len(crediteuren)} crediteuren for matching")
-        print(f"DEBUG: Bank amount: {bank_amount}, description: '{bank_description}', counterparty: '{bank_counterparty}'")
-        
-        for crediteur in crediteuren:
-            crediteur_amount = crediteur.get('bedrag', 0)
-            crediteur_naam = crediteur.get('crediteur', '').lower()
+        # Find potential crediteur matches - ONLY for negative bank transactions (outgoing payments)
+        if bank_amount < 0:  # Only match crediteuren with outgoing bank transactions
+            crediteuren = await db.crediteuren.find({"actief": True}).to_list(20)
+            print(f"DEBUG: Found {len(crediteuren)} crediteuren for matching negative transaction")
+            print(f"DEBUG: Bank amount: {bank_amount}, description: '{bank_description}', counterparty: '{bank_counterparty}'")
             
-            # Match by amount
-            amount_match = False
-            amount_diff = abs(bank_amount - crediteur_amount)
-            if amount_diff < 20.0:
-                amount_match = True
-                print(f"DEBUG: Amount match for {crediteur_naam}: {bank_amount} vs {crediteur_amount} (diff: {amount_diff})")
+            bank_abs_amount = abs(bank_amount)  # Get absolute value for comparison with crediteur amounts
             
-            # Match by name/description
-            name_match = False
-            if (crediteur_naam and 
-                (crediteur_naam in bank_description or 
-                 crediteur_naam in bank_counterparty or
-                 any(word in bank_description for word in crediteur_naam.split() if len(word) > 3))):
-                name_match = True
-                print(f"DEBUG: Name match for {crediteur_naam}")
-            
-            # Calculate match score
-            score = 0
-            reasons = []
-            if amount_match and name_match:
-                score = 90
-                reasons = ["Exacte bedrag match", "Naam match in beschrijving"]
-            elif amount_match:
-                score = 70
-                reasons = ["Exacte bedrag match"]
-            elif name_match:
-                score = 60
-                reasons = ["Naam match in beschrijving"]
-            
-            # Also add crediteur suggestions with just amount match (lower score)
-            if score == 0 and amount_match:
-                score = 50
-                reasons = ["Bedrag match"]
-            
-            if score > 0:
-                suggestions.append({
-                    "id": crediteur['id'],
-                    "type": "expense",
-                    "category": "crediteur",
-                    "amount": crediteur_amount,
-                    "description": f"Maandelijkse betaling {crediteur_naam}",
-                    "patient_name": crediteur_naam,
-                    "invoice_number": f"Crediteur-{crediteur['dag']}e",
-                    "match_type": "crediteur",
-                    "match_score": score,
-                    "match_reason": ", ".join(reasons),
-                    "crediteur_dag": crediteur.get('dag', 1)
-                })
+            for crediteur in crediteuren:
+                crediteur_amount = crediteur.get('bedrag', 0)
+                crediteur_naam = crediteur.get('crediteur', '').lower()
+                
+                # Much stricter amount matching - must be very close (within €2 or 2%)
+                amount_tolerance = min(crediteur_amount * 0.02, 2.0)
+                amount_diff = abs(bank_abs_amount - crediteur_amount)
+                amount_match = amount_diff <= amount_tolerance
+                
+                if amount_match:
+                    print(f"DEBUG: Amount match for {crediteur_naam}: €{bank_abs_amount} vs €{crediteur_amount} (diff: €{amount_diff:.2f})")
+                
+                # Match by name/description
+                name_match = False
+                if crediteur_naam:
+                    # Check various name matching scenarios
+                    if (crediteur_naam in bank_description or 
+                        crediteur_naam in bank_counterparty or
+                        bank_counterparty in crediteur_naam or
+                        any(word in bank_description for word in crediteur_naam.split() if len(word) > 3)):
+                        name_match = True
+                        print(f"DEBUG: Name match for {crediteur_naam}")
+                
+                # Calculate match score - much higher standards
+                score = 0
+                reasons = []
+                if amount_match and name_match:
+                    score = 95
+                    reasons = ["Exacte bedrag match", "Naam match"]
+                elif amount_match:
+                    score = 85
+                    reasons = ["Exacte bedrag match"]
+                elif name_match and amount_diff <= crediteur_amount * 0.1:  # Name match with reasonable amount
+                    score = 70
+                    reasons = ["Naam match", f"Redelijk bedrag (verschil: €{amount_diff:.2f})"]
+                
+                # Only suggest if score is high enough (minimum 70)
+                if score >= 70:
+                    suggestions.append({
+                        "id": crediteur['id'],
+                        "type": "expense",
+                        "category": "crediteur",
+                        "amount": crediteur_amount,
+                        "description": f"Maandelijkse betaling {crediteur_naam}",
+                        "patient_name": crediteur_naam,
+                        "invoice_number": f"Crediteur-{crediteur['dag']}e",
+                        "match_type": "crediteur",
+                        "match_score": score,
+                        "match_reason": ", ".join(reasons),
+                        "crediteur_dag": crediteur.get('dag', 1)
+                    })
+        else:
+            print(f"DEBUG: Skipping crediteur matching for positive bank transaction: €{bank_amount}")
         
         # Sort by match score
         suggestions.sort(key=lambda x: x.get("match_score", 0), reverse=True)
