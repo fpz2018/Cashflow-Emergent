@@ -8,10 +8,19 @@ const API = `${BACKEND_URL}/api`;
 const PaymentTooltip = ({ payments, type, visible, position }) => {
   if (!visible || !payments || payments.length === 0) return null;
 
-  const filteredPayments = payments.filter(p => 
-    (type === 'income' && p.type === 'inkomst') ||
-    (type === 'expense' && p.type === 'uitgave')
-  );
+  let filteredPayments;
+  let title;
+  
+  if (type === 'income') {
+    filteredPayments = payments.filter(p => p.type === 'inkomst');
+    title = '💰 Inkomsten details:';
+  } else if (type === 'expense') {
+    filteredPayments = payments.filter(p => p.type === 'uitgave');
+    title = '💳 Uitgaven details:';
+  } else if (type === 'net') {
+    filteredPayments = payments;
+    title = '📊 Alle transacties:';
+  }
 
   if (filteredPayments.length === 0) return null;
 
@@ -26,7 +35,7 @@ const PaymentTooltip = ({ payments, type, visible, position }) => {
       }}
     >
       <div className="text-sm font-medium mb-2 text-slate-700">
-        {type === 'income' ? '💰 Inkomsten details:' : '💳 Uitgaven details:'}
+        {title}
       </div>
       <div className="space-y-1">
         {filteredPayments.map((payment, idx) => (
@@ -37,19 +46,21 @@ const PaymentTooltip = ({ payments, type, visible, position }) => {
             <div className={`font-medium whitespace-nowrap ${
               payment.type === 'inkomst' ? 'text-emerald-600' : 'text-red-600'
             }`}>
-              €{Math.abs(payment.bedrag).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
+              {payment.type === 'inkomst' ? '+' : '-'}€{Math.abs(payment.bedrag).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
             </div>
           </div>
         ))}
       </div>
-      <div className="mt-2 pt-2 border-t border-slate-200">
-        <div className="flex justify-between text-sm font-semibold">
-          <span>Totaal:</span>
-          <span className={type === 'income' ? 'text-emerald-600' : 'text-red-600'}>
-            €{filteredPayments.reduce((sum, p) => sum + Math.abs(p.bedrag), 0).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
-          </span>
+      {type !== 'net' && (
+        <div className="mt-2 pt-2 border-t border-slate-200">
+          <div className="flex justify-between text-sm font-semibold">
+            <span>Totaal:</span>
+            <span className={type === 'income' ? 'text-emerald-600' : 'text-red-600'}>
+              €{filteredPayments.reduce((sum, p) => sum + Math.abs(p.bedrag), 0).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
