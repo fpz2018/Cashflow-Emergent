@@ -121,7 +121,7 @@ function App() {
                     }}
                     data-testid="nav-dashboard"
                   >
-                    Dashboard
+                    💰 Dashboard
                   </button>
                   <button 
                     className={`font-medium transition-colors ${
@@ -130,7 +130,7 @@ function App() {
                     onClick={() => setActiveView('setup')}
                     data-testid="nav-setup"
                   >
-                    Data Setup
+                    ⚙️ Instellingen
                   </button>
                   <button 
                     className={`font-medium transition-colors ${
@@ -139,10 +139,7 @@ function App() {
                     onClick={() => setActiveView('import')}
                     data-testid="nav-import"
                   >
-                    Import & Reconciliatie
-                  </button>
-                  <button className="text-slate-600 hover:text-slate-900 font-medium transition-colors">
-                    Rapporten
+                    📊 Data & Reconciliatie
                   </button>
                 </nav>
               </div>
