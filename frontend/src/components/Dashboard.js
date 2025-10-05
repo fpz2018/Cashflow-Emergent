@@ -102,6 +102,25 @@ const Dashboard = ({ onRefresh }) => {
     fetchCashflowForecast();
   }, []);
 
+  const handleMouseEnter = (event, type, payments) => {
+    const rect = event.target.getBoundingClientRect();
+    setTooltip({
+      visible: true,
+      type: type,
+      payments: payments,
+      position: { x: rect.left, y: rect.top }
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setTooltip({
+      visible: false,
+      type: null,
+      payments: [],
+      position: { x: 0, y: 0 }
+    });
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('nl-NL', {
       style: 'currency',
