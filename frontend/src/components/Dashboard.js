@@ -116,34 +116,18 @@ const Dashboard = ({ onRefresh }) => {
   };
 
   const handleDeleteTransaction = async () => {
-    if (!window.confirm('Weet u zeker dat u deze transactie wilt verwijderen?')) return;
+    if (!window.confirm('Weet u zeker dat u deze transactie wilt verwijderen?\n\nLet op: Deze functie vereist nog backend implementatie.')) return;
     
     try {
       setLoading(true);
       setError('');
 
-      // Similar logic for deletion
-      let apiEndpoint;
+      console.log('Would delete transaction:', editingTransaction);
       
-      if (editingTransaction.beschrijving?.includes('Declaratie')) {
-        apiEndpoint = `${API}/transactions/${editingTransaction.id}`;
-      } else if (editingTransaction.beschrijving?.includes('Betaling')) {
-        const crediteurNaam = editingTransaction.beschrijving.replace('Betaling ', '');
-        const crediteurenResponse = await axios.get(`${API}/crediteuren`);
-        const crediteuren = crediteurenResponse.data;
-        const targetCrediteur = crediteuren.find(c => c.crediteur === crediteurNaam);
-        
-        if (targetCrediteur) {
-          apiEndpoint = `${API}/crediteuren/${targetCrediteur.id}`;
-        }
-      } else {
-        apiEndpoint = `${API}/transactions/${editingTransaction.id}`;
-      }
-
-      await axios.delete(apiEndpoint);
-      
-      // Refresh data
-      await fetchCashflowForecast();
+      alert('Verwijder functie vereist nog backend implementatie.' +
+            '\nVoor nu kunt u transacties verwijderen via:' +
+            '\n1. Data Setup → Data Cleanup' +
+            '\n2. Of via Import & Reconciliatie opnieuw importeren');
       
       // Close edit modal
       setEditingTransaction(null);
