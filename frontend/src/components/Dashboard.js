@@ -121,7 +121,7 @@ const Dashboard = ({ onRefresh }) => {
       
       // Close edit modal
       setEditingTransaction(null);
-      setEditForm({ beschrijving: '', bedrag: '', type: 'inkomst' });
+      setEditForm({ beschrijving: '', bedrag: '', type: 'inkomst', datum: '' });
       
     } catch (error) {
       console.error('Error updating transaction:', error);
@@ -163,7 +163,7 @@ const Dashboard = ({ onRefresh }) => {
       
       // Close edit modal
       setEditingTransaction(null);
-      setEditForm({ beschrijving: '', bedrag: '', type: 'inkomst' });
+      setEditForm({ beschrijving: '', bedrag: '', type: 'inkomst', datum: '' });
       
     } catch (error) {
       console.error('Error deleting transaction:', error);
