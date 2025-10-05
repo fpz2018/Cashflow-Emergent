@@ -231,31 +231,7 @@ const Dashboard = ({ onRefresh }) => {
         )}
       </div>
 
-      {/* Quick Stats */}
-      {cashflowData && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="modern-card text-center">
-            <h4 className="text-sm font-medium text-slate-700 mb-2">Verwachte Inkomsten (30d)</h4>
-            <div className="text-2xl font-bold text-emerald-600">
-              {formatCurrency(cashflowData.total_expected_income)}
-            </div>
-          </div>
-          
-          <div className="modern-card text-center">
-            <h4 className="text-sm font-medium text-slate-700 mb-2">Verwachte Uitgaven (30d)</h4>
-            <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(Math.abs(cashflowData.total_expected_expenses))}
-            </div>
-          </div>
-          
-          <div className="modern-card text-center">
-            <h4 className="text-sm font-medium text-slate-700 mb-2">Netto Prognose (30d)</h4>
-            <div className={`text-2xl font-bold ${cashflowData.net_expected >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-              {formatCurrency(cashflowData.net_expected)}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Deze sectie is verplaatst naar boven */}
     </div>
   );
 };
