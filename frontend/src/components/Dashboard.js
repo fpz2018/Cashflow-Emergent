@@ -125,7 +125,26 @@ const Dashboard = ({ onRefresh }) => {
       
     } catch (error) {
       console.error('Error updating transaction:', error);
-      setError(`Fout bij wijzigen transactie: ${error.response?.data?.detail || error.message}`);
+      console.error('Error response:', error.response);
+      console.error('Error data:', error.response?.data);
+      
+      let errorMessage = 'Onbekende fout bij wijzigen transactie';
+      
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else {
+          errorMessage = JSON.stringify(error.response.data);
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(`Fout bij wijzigen transactie: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
