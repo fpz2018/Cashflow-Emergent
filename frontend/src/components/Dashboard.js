@@ -75,49 +75,14 @@ const Dashboard = ({ onRefresh }) => {
       setLoading(true);
       setError('');
 
-      // Determine the correct API endpoint based on transaction type and content
-      let apiEndpoint;
-      let updateData = {
-        description: editForm.beschrijving,
-        amount: editForm.type === 'uitgave' ? -Math.abs(parseFloat(editForm.bedrag)) : Math.abs(parseFloat(editForm.bedrag)),
-        date: editForm.datum
-      };
-
-      // Check if this is a declaration (has invoice number) or creditor payment
-      if (editingTransaction.beschrijving?.includes('Declaratie')) {
-        // This is likely a transaction from the transactions collection
-        apiEndpoint = `${API}/transactions/${editingTransaction.id || 'unknown'}`;
-        updateData = {
-          ...updateData,
-          type: editForm.type === 'inkomst' ? 'income' : 'expense'
-        };
-      } else if (editingTransaction.beschrijving?.includes('Betaling')) {
-        // This is likely a creditor payment - we need to update the creditor
-        const crediteurNaam = editingTransaction.beschrijving.replace('Betaling ', '');
-        apiEndpoint = `${API}/crediteuren`;
-        
-        // Find and update the specific creditor
-        const crediteurenResponse = await axios.get(`${API}/crediteuren`);
-        const crediteuren = crediteurenResponse.data;
-        const targetCrediteur = crediteuren.find(c => c.crediteur === crediteurNaam);
-        
-        if (targetCrediteur) {
-          updateData = {
-            ...targetCrediteur,
-            crediteur: editForm.beschrijving.replace('Betaling ', ''),
-            bedrag: Math.abs(parseFloat(editForm.bedrag))
-          };
-          apiEndpoint = `${API}/crediteuren/${targetCrediteur.id}`;
-        }
-      } else {
-        // Generic transaction update
-        apiEndpoint = `${API}/transactions/${editingTransaction.id || 'unknown'}`;
-      }
-
-      await axios.put(apiEndpoint, updateData);
+      console.log('Editing transaction:', editingTransaction);
+      console.log('Form data:', editForm);
       
-      // Refresh data
-      await fetchCashflowForecast();
+      // For now, let's show a message that this feature needs backend implementation
+      alert('Deze functie vereist nog backend implementatie. Voor nu kunt u:' +
+            '\n1. De transactie bekijken en controleren' +
+            '\n2. Wijzigingen handmatig aanbrengen via Data Setup' +
+            '\n3. Of via Import & Reconciliatie opnieuw importeren');
       
       // Close edit modal
       setEditingTransaction(null);
