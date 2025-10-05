@@ -2863,12 +2863,36 @@ async def edit_dashboard_transaction(
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
         
-        # Handle special cases - geclassificeerde kosten cannot be edited directly
+        # Handle geclassificeerde kosten (classified costs)
         if "Vaste kosten:" in description or "Variabele kosten:" in description:
-            raise HTTPException(
-                status_code=400, 
-                detail="Geclassificeerde kosten kunnen niet direct bewerkt worden. Gebruik 'Instellingen' → 'Kosten Overzicht' om deze aan te passen."
+            # Extract category name from description
+            if "Vaste kosten:" in description:
+                category_name = description.replace("Vaste kosten: ", "").replace(" (gemiddeld)", "")
+                collection = db.vaste_kosten
+                collection_name = "vaste_kosten"
+            else:
+                category_name = description.replace("Variabele kosten: ", "").replace(" (geschat)", "")
+                collection = db.variabele_kosten  
+                collection_name = "variabele_kosten"
+            
+            # Update all records in that category
+            update_result = await collection.update_many(
+                {"category_name": category_name, "active": True},
+                {"$set": {
+                    "category_name": description.split(": ")[1].replace(" (gemiddeld)", "").replace(" (geschat)", ""),
+                    "amount": abs(amount)
+                }}
             )
+            
+            if update_result.matched_count == 0:
+                raise HTTPException(status_code=404, detail=f"Geen {collection_name} gevonden voor categorie: {category_name}")
+            
+            return {
+                "message": f"Geclassificeerde kosten succesvol bijgewerkt",
+                "updated_records": update_result.modified_count,
+                "category": category_name,
+                "collection": collection_name
+            }
         
         # Determine which collection to update based on transaction type
         if transaction_type == "declaratie":
