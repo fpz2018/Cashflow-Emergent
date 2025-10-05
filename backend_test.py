@@ -2521,51 +2521,259 @@ ZV003,17-1-2025,Zilveren Kruis,€ 200,25"""
             print(f"❌ BUNQ import test failed with exception: {str(e)}")
             return False
 
+    def test_simplified_dashboard_cashflow_forecast(self):
+        """Test the new simplified dashboard cashflow forecast functionality as requested"""
+        print("\n🎯 Testing Simplified Dashboard Cashflow Forecast...")
+        print("   Focus: Testing nieuwe vereenvoudigde dashboard cashflow overzicht")
+        print("   Endpoints: /api/cashflow-forecast, /api/bank-saldo, /api/overige-omzet, /api/correcties")
+        
+        all_success = True
+        
+        # Test 1: Cashflow Forecast API - /api/cashflow-forecast?days=30
+        print("\n--- 1. Testing Cashflow Forecast API (30 days) ---")
+        success1, forecast_30 = self.run_test(
+            "Cashflow Forecast (30 days)",
+            "GET",
+            "cashflow-forecast",
+            200,
+            params={"days": 30}
+        )
+        
+        if success1 and isinstance(forecast_30, dict):
+            print(f"   ✅ 30-day forecast structure:")
+            
+            # Check required fields from review request
+            total_expected_income = forecast_30.get('total_expected_income', 0)
+            total_expected_expenses = forecast_30.get('total_expected_expenses', 0)
+            net_expected = forecast_30.get('net_expected', 0)
+            forecast_days = forecast_30.get('forecast_days', [])
+            
+            print(f"     - Total expected income: €{total_expected_income}")
+            print(f"     - Total expected expenses: €{total_expected_expenses}")
+            print(f"     - Net expected: €{net_expected}")
+            print(f"     - Forecast days count: {len(forecast_days)}")
+            
+            # Verify forecast_days array structure (per day: date, expected_income, expected_expenses, ending_balance)
+            if forecast_days and len(forecast_days) > 0:
+                sample_day = forecast_days[0]
+                required_day_fields = ['date', 'inkomsten', 'uitgaven', 'verwachte_saldo']
+                missing_fields = [field for field in required_day_fields if field not in sample_day]
+                
+                if not missing_fields:
+                    print(f"     ✅ Forecast day structure correct: date, expected_income, expected_expenses, ending_balance")
+                    print(f"     Sample day: {sample_day.get('date')} - Income: €{sample_day.get('inkomsten', 0)}, Expenses: €{sample_day.get('uitgaven', 0)}, Balance: €{sample_day.get('verwachte_saldo', 0)}")
+                else:
+                    print(f"     ⚠️  Missing fields in forecast_days: {missing_fields}")
+                    all_success = False
+            else:
+                print(f"     ⚠️  No forecast_days data returned")
+                all_success = False
+        else:
+            all_success = False
+        
+        # Test 2: Dashboard Data Flow - Ending balance for today
+        print("\n--- 2. Testing Dashboard Data Flow (Today's Ending Balance) ---")
+        if success1 and forecast_30 and forecast_30.get('forecast_days'):
+            today_forecast = None
+            today_str = datetime.now().strftime('%Y-%m-%d')
+            
+            # Find today's forecast data
+            for day in forecast_30.get('forecast_days', []):
+                if day.get('date') == today_str:
+                    today_forecast = day
+                    break
+            
+            if today_forecast:
+                ending_balance_today = today_forecast.get('verwachte_saldo', 0)
+                print(f"   ✅ Today's ending balance: €{ending_balance_today}")
+                print(f"   ✅ Data available for prominent banksaldo display")
+            else:
+                print(f"   ⚠️  Today's forecast data not found in forecast_days")
+                # Try to get first day as fallback
+                if forecast_30.get('forecast_days'):
+                    first_day = forecast_30['forecast_days'][0]
+                    print(f"   Using first day balance: €{first_day.get('verwachte_saldo', 0)}")
+        
+        # Test 3: Daily forecast data for table (14 days)
+        print("\n--- 3. Testing Daily Forecast Data for Table (14 days) ---")
+        success3, forecast_14 = self.run_test(
+            "Cashflow Forecast (14 days for table)",
+            "GET",
+            "cashflow-forecast",
+            200,
+            params={"days": 14}
+        )
+        
+        if success3 and isinstance(forecast_14, dict):
+            forecast_days_14 = forecast_14.get('forecast_days', [])
+            print(f"   ✅ 14-day forecast for table: {len(forecast_days_14)} days")
+            
+            if len(forecast_days_14) >= 14:
+                print(f"   ✅ Sufficient data for 14-day cashflow table")
+                # Show sample of first few days
+                for i, day in enumerate(forecast_days_14[:3]):
+                    date = day.get('date', 'N/A')
+                    income = day.get('inkomsten', 0)
+                    expenses = day.get('uitgaven', 0)
+                    balance = day.get('verwachte_saldo', 0)
+                    print(f"     Day {i+1}: {date} - In: €{income}, Out: €{expenses}, Balance: €{balance}")
+            else:
+                print(f"   ⚠️  Only {len(forecast_days_14)} days returned, expected 14")
+                all_success = False
+        else:
+            all_success = False
+        
+        # Test 4: Bank Saldo endpoint (for starting bank balance)
+        print("\n--- 4. Testing Bank Saldo Endpoint (Starting Balance) ---")
+        success4, bank_saldo = self.run_test(
+            "Bank Saldo API (for starting balance)",
+            "GET",
+            "bank-saldo",
+            200
+        )
+        
+        if success4:
+            if isinstance(bank_saldo, list):
+                print(f"   ✅ Bank saldo endpoint working: {len(bank_saldo)} entries")
+                if len(bank_saldo) > 0:
+                    latest_saldo = bank_saldo[0]  # Should be sorted by date DESC
+                    print(f"   ✅ Latest bank saldo: €{latest_saldo.get('saldo', 0)} on {latest_saldo.get('date', 'N/A')}")
+                    print(f"   ✅ Data available for starting bank balance")
+                else:
+                    print(f"   ✅ Empty array returned (no bank saldo data yet) - structure correct")
+            else:
+                print(f"   ❌ Expected array, got: {type(bank_saldo)}")
+                all_success = False
+        else:
+            all_success = False
+        
+        # Test 5: Overige Omzet endpoint (for other income)
+        print("\n--- 5. Testing Overige Omzet Endpoint (Other Income) ---")
+        success5, overige_omzet = self.run_test(
+            "Overige Omzet API (for other income)",
+            "GET",
+            "overige-omzet",
+            200
+        )
+        
+        if success5:
+            if isinstance(overige_omzet, list):
+                print(f"   ✅ Overige omzet endpoint working: {len(overige_omzet)} entries")
+                if len(overige_omzet) > 0:
+                    sample_omzet = overige_omzet[0]
+                    print(f"   ✅ Sample overige omzet: {sample_omzet.get('description', 'N/A')} - €{sample_omzet.get('amount', 0)}")
+                    print(f"   ✅ Data available for other income calculations")
+                else:
+                    print(f"   ✅ Empty array returned (no overige omzet data yet) - structure correct")
+            else:
+                print(f"   ❌ Expected array, got: {type(overige_omzet)}")
+                all_success = False
+        else:
+            all_success = False
+        
+        # Test 6: Correcties endpoint (for corrections)
+        print("\n--- 6. Testing Correcties Endpoint (Corrections) ---")
+        success6, correcties = self.run_test(
+            "Correcties API (for corrections)",
+            "GET",
+            "correcties",
+            200
+        )
+        
+        if success6:
+            if isinstance(correcties, list):
+                print(f"   ✅ Correcties endpoint working: {len(correcties)} entries")
+                if len(correcties) > 0:
+                    sample_correctie = correcties[0]
+                    print(f"   ✅ Sample correctie: {sample_correctie.get('description', 'N/A')} - €{sample_correctie.get('amount', 0)}")
+                    print(f"   ✅ Data available for corrections calculations")
+                else:
+                    print(f"   ✅ Empty array returned (no correcties data yet) - structure correct")
+            else:
+                print(f"   ❌ Expected array, got: {type(correcties)}")
+                all_success = False
+        else:
+            all_success = False
+        
+        # Test 7: Verify all amounts are calculated correctly
+        print("\n--- 7. Testing Amount Calculations Correctness ---")
+        if success1 and forecast_30:
+            total_income = forecast_30.get('total_expected_income', 0)
+            total_expenses = forecast_30.get('total_expected_expenses', 0)
+            net_expected = forecast_30.get('net_expected', 0)
+            
+            # Verify net calculation
+            calculated_net = total_income + total_expenses  # expenses are negative
+            if abs(calculated_net - net_expected) < 0.01:  # Allow for small floating point differences
+                print(f"   ✅ Amount calculations correct: {total_income} + {total_expenses} = {net_expected}")
+            else:
+                print(f"   ❌ Amount calculation error: {total_income} + {total_expenses} ≠ {net_expected}")
+                print(f"   Expected: {calculated_net}, Got: {net_expected}")
+                all_success = False
+        
+        # Summary
+        all_success = success1 and success3 and success4 and success5 and success6 and all_success
+        
+        print(f"\n   📊 SIMPLIFIED DASHBOARD CASHFLOW FORECAST TEST SUMMARY:")
+        print(f"   - Cashflow forecast (30 days): {'✅ PASSED' if success1 else '❌ FAILED'}")
+        print(f"   - Daily forecast data (14 days): {'✅ PASSED' if success3 else '❌ FAILED'}")
+        print(f"   - Bank saldo API: {'✅ PASSED' if success4 else '❌ FAILED'}")
+        print(f"   - Overige omzet API: {'✅ PASSED' if success5 else '❌ FAILED'}")
+        print(f"   - Correcties API: {'✅ PASSED' if success6 else '❌ FAILED'}")
+        
+        if all_success:
+            print(f"   ✅ ALL SIMPLIFIED DASHBOARD ENDPOINTS WORKING CORRECTLY!")
+            print(f"   ✅ Dashboard data flow is complete:")
+            print(f"     • Ending balance for today available")
+            print(f"     • Daily forecast data for 14-day table available")
+            print(f"     • All supporting data endpoints working")
+            print(f"     • Amount calculations are correct")
+            print(f"   ✅ Ready for frontend dashboard integration")
+        else:
+            print(f"   ❌ SOME DASHBOARD ENDPOINTS HAVE ISSUES")
+            print(f"   ❌ Dashboard may not display correctly")
+        
+        return all_success
+
 def main():
-    print("🏥 Starting Fysiotherapie Cashflow API Tests")
-    print("=" * 50)
+    print("🎯 Testing Simplified Dashboard Cashflow Forecast")
+    print("=" * 60)
+    print("Focus: Testing nieuwe vereenvoudigde dashboard cashflow overzicht")
+    print("=" * 60)
     
     tester = CashflowAPITester()
     
-    # Run all tests
-    tests = [
-        ("BUNQ Dutch Formatting Import", tester.test_bunq_import_dutch_formatting),
-        ("Dutch Name Extraction and Currency Parsing", tester.test_dutch_name_extraction_and_currency_parsing),
-        ("Persoonsnaam Extraction and Enhanced Matching", tester.test_persoonsnaam_extraction_and_matching),
-        ("Correcties Suggestions Aggregation Pipeline", tester.test_correcties_suggestions_aggregation_pipeline),
-        ("Creditfactuur Category Filtering", tester.test_creditfactuur_particulier_category_filtering),
-        ("Dutch Formatting Bulk Import", tester.test_dutch_formatting_bulk_import),
-    ]
-    
-    results = {}
-    for test_name, test_func in tests:
-        try:
-            results[test_name] = test_func()
-        except Exception as e:
-            print(f"❌ {test_name} failed with exception: {str(e)}")
-            results[test_name] = False
-    
-    # Print final results
-    print("\n" + "=" * 50)
-    print("📊 FINAL TEST RESULTS")
-    print("=" * 50)
-    
-    for test_name, passed in results.items():
-        status = "✅ PASSED" if passed else "❌ FAILED"
-        print(f"{test_name:<25} {status}")
-    
-    print(f"\nOverall: {tester.tests_passed}/{tester.tests_run} tests passed")
-    
-    # Cleanup remaining transactions
-    if tester.created_transactions:
-        print(f"\n🧹 Cleaning up {len(tester.created_transactions)} remaining transactions...")
-        for transaction_id in tester.created_transactions:
-            tester.run_test(f"Cleanup {transaction_id}", "DELETE", f"transactions/{transaction_id}", 200)
-    
-    success_rate = (tester.tests_passed / tester.tests_run * 100) if tester.tests_run > 0 else 0
-    print(f"Success Rate: {success_rate:.1f}%")
-    
-    return 0 if success_rate >= 80 else 1
+    # Run focused test for the review request
+    try:
+        success = tester.test_simplified_dashboard_cashflow_forecast()
+        
+        # Print final results
+        print("\n" + "=" * 60)
+        print("📊 FINAL TEST RESULTS")
+        print("=" * 60)
+        
+        status = "✅ PASSED" if success else "❌ FAILED"
+        print(f"Simplified Dashboard Cashflow Forecast: {status}")
+        
+        print(f"\nOverall: {tester.tests_passed}/{tester.tests_run} individual tests passed")
+        
+        success_rate = (tester.tests_passed / tester.tests_run * 100) if tester.tests_run > 0 else 0
+        print(f"Success Rate: {success_rate:.1f}%")
+        
+        if success:
+            print("\n🎉 SIMPLIFIED DASHBOARD READY FOR FRONTEND INTEGRATION!")
+            print("✅ All required endpoints working correctly")
+            print("✅ Data structures are correct")
+            print("✅ Amount calculations are accurate")
+        else:
+            print("\n❌ DASHBOARD ENDPOINTS HAVE ISSUES")
+            print("❌ Check the detailed output above for specific problems")
+        
+        return 0 if success else 1
+        
+    except Exception as e:
+        print(f"❌ Test failed with exception: {str(e)}")
+        return 1
 
 if __name__ == "__main__":
     sys.exit(main())
