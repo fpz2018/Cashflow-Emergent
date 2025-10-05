@@ -62,23 +62,68 @@ const BankReconciliation = ({ onRefresh }) => {
 
   const handleMatch = async (bankTransactionId, cashflowTransactionId) => {
     try {
-      await axios.post(`${API}/bank-reconciliation/match`, null, {
-        params: {
-          bank_transaction_id: bankTransactionId,
-          cashflow_transaction_id: cashflowTransactionId
-        }
-      });
-
-      // Refresh data
-      await fetchUnmatchedTransactions();
-      setSelectedBankTransaction(null);
-      setSuggestions([]);
+      console.log('Matching:', { bankTransactionId, cashflowTransactionId });
       
+      const response = await axios.post(
+        `${API}/bank-reconciliation/match`,
+        null,
+        {
+          params: {
+            bank_transaction_id: bankTransactionId,
+            transaction_id: cashflowTransactionId
+          }
+        }
+      );
+      
+      console.log('Match response:', response.data);
+      setSuggestions([]);
+      setSelectedBankTransaction(null);
+      await fetchUnmatchedTransactions();
       onRefresh && onRefresh();
-
     } catch (error) {
       console.error('Error matching transactions:', error);
-      setError('Fout bij koppelen transacties');
+      setError(`Fout bij koppelen transacties: ${error.response?.data?.detail || error.message}`);
+    }
+  };
+
+  const handleClassifyTransaction = async (bankTransactionId, classificationType, categoryName) => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const response = await axios.post(
+        `${API}/bank-reconciliation/classify/${bankTransactionId}`,
+        null,
+        {
+          params: {
+            classification_type: classificationType,
+            category_name: categoryName
+          }
+        }
+      );
+      
+      console.log('Classification response:', response.data);
+      
+      // Reset state and refresh data
+      setShowClassificationModal(false);
+      setSelectedBankTransaction(null);
+      setSuggestions([]);
+      setClassificationForm({ type: 'vast', categoryName: '' });
+      
+      await fetchUnmatchedTransactions();
+      onRefresh && onRefresh();
+      
+    } catch (error) {
+      console.error('Error classifying transaction:', error);
+      setError(`Fout bij classificeren: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenClassification = () => {
+    if (selectedBankTransaction && selectedBankTransaction.amount < 0) {
+      setShowClassificationModal(true);
     }
   };
 
