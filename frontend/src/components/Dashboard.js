@@ -4,41 +4,47 @@ import axios from 'axios';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-const Dashboard = ({ 
-  cashflowSummary, 
-  transactions, 
-  loading, 
-  onCreateTransaction, 
-  onUpdateTransaction, 
-  onDeleteTransaction, 
-  onRefresh 
-}) => {
-  const [showTransactionForm, setShowTransactionForm] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState(null);
+const Dashboard = ({ onRefresh }) => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [cashflowData, setCashflowData] = useState(null);
+  const [currentBalance, setCurrentBalance] = useState(0);
 
-  const handleCreateTransaction = async (transactionData) => {
+  // Fetch dagelijkse cashflow forecast
+  const fetchCashflowForecast = async () => {
     try {
-      await onCreateTransaction(transactionData);
-      setShowTransactionForm(false);
+      setLoading(true);
+      setError('');
+      
+      // Haal 30-dagen forecast op
+      const forecastResponse = await axios.get(`${API}/cashflow-forecast?days=30`);
+      const forecastData = forecastResponse.data;
+      
+      // Bereken huidige banksaldo (vandaag)
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      
+      // Zoek vandaag in de forecast data
+      const todayForecast = forecastData.forecast_days?.find(day => 
+        day.date === todayStr
+      );
+      
+      const calculatedBalance = todayForecast ? todayForecast.ending_balance : 0;
+      
+      setCashflowData(forecastData);
+      setCurrentBalance(calculatedBalance);
+      
     } catch (error) {
-      console.error('Error creating transaction:', error);
+      console.error('Error fetching cashflow forecast:', error);
+      setError('Fout bij ophalen cashflow gegevens');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleEditTransaction = (transaction) => {
-    setEditingTransaction(transaction);
-    setShowTransactionForm(true);
-  };
-
-  const handleUpdateTransaction = async (transactionId, updateData) => {
-    try {
-      await onUpdateTransaction(transactionId, updateData);
-      setShowTransactionForm(false);
-      setEditingTransaction(null);
-    } catch (error) {
-      console.error('Error updating transaction:', error);
-    }
-  };
+  useEffect(() => {
+    fetchCashflowForecast();
+  }, []);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('nl-NL', {
