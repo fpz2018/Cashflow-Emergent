@@ -1390,7 +1390,7 @@ async def get_reconciliation_suggestions(bank_transaction_id: str):
         if not bank_trans:
             raise HTTPException(status_code=404, detail="Bank transactie niet gevonden")
         
-        bank_amount = abs(bank_trans.get('amount', 0))
+        bank_amount = bank_trans.get('amount', 0)  # Keep original sign!
         bank_original_amount = bank_trans.get('original_amount', bank_trans.get('amount', 0))
         bank_date = bank_trans.get('date', '')
         bank_description = bank_trans.get('description', '').lower()
@@ -1401,15 +1401,18 @@ async def get_reconciliation_suggestions(bank_transaction_id: str):
         # Find potential cashflow transaction matches
         if bank_date:
             date_obj = datetime.fromisoformat(bank_date).date() if isinstance(bank_date, str) else bank_date
-            start_date = (date_obj - timedelta(days=14)).isoformat()
-            end_date = (date_obj + timedelta(days=14)).isoformat()
+            start_date = (date_obj - timedelta(days=7)).isoformat()  # Stricter: only 7 days
+            end_date = (date_obj + timedelta(days=7)).isoformat()
             
-            # Match by exact amount first
+            # CRITICAL: Only match transactions with same sign (positive with positive, negative with negative)
+            # AND make matching much stricter
+            
+            # Match by exact amount first (same sign!)
             exact_matches = await db.transactions.find({
                 "reconciled": False,
-                "amount": bank_amount,
+                "amount": bank_amount,  # Exact amount match including sign
                 "date": {"$gte": start_date, "$lte": end_date}
-            }).to_list(5)
+            }).to_list(3)
             
             for match in exact_matches:
                 suggestions.append({
@@ -1419,25 +1422,41 @@ async def get_reconciliation_suggestions(bank_transaction_id: str):
                     "match_reason": "Exacte bedrag en datum match"
                 })
             
-            # Match by similar amount (within 5% or €5)
-            if len(suggestions) < 5:
-                amount_tolerance = max(bank_amount * 0.05, 5.0)
+            # Only look for similar amounts if no exact matches and be MUCH stricter
+            if len(suggestions) == 0:
+                # Very strict tolerance: only €1 or 1% difference, whichever is smaller
+                amount_tolerance = min(abs(bank_amount) * 0.01, 1.0)  
+                
+                # Determine sign-based range
+                if bank_amount >= 0:
+                    # For positive amounts, only match positive transactions
+                    min_amount = bank_amount - amount_tolerance
+                    max_amount = bank_amount + amount_tolerance
+                    sign_filter = {"$gte": 0}
+                else:
+                    # For negative amounts, only match negative transactions  
+                    min_amount = bank_amount - amount_tolerance  # More negative
+                    max_amount = bank_amount + amount_tolerance  # Less negative
+                    sign_filter = {"$lt": 0}
+                
                 similar_matches = await db.transactions.find({
                     "reconciled": False,
                     "amount": {
-                        "$gte": bank_amount - amount_tolerance,
-                        "$lte": bank_amount + amount_tolerance
+                        "$gte": min_amount,
+                        "$lte": max_amount,
+                        **sign_filter  # Ensure same sign
                     },
                     "date": {"$gte": start_date, "$lte": end_date}
-                }).to_list(3)
+                }).to_list(2)  # Only 2 suggestions for similar matches
                 
                 for match in similar_matches:
-                    if match not in [s for s in suggestions if s.get("match_type") == "transaction"]:
+                    # Double check that signs match
+                    if (bank_amount >= 0 and match['amount'] >= 0) or (bank_amount < 0 and match['amount'] < 0):
                         suggestions.append({
                             **Transaction(**parse_from_mongo(match)).dict(),
                             "match_type": "transaction", 
-                            "match_score": 80,
-                            "match_reason": "Vergelijkbaar bedrag en datum"
+                            "match_score": 75,
+                            "match_reason": f"Zeer vergelijkbaar bedrag (±€{amount_tolerance:.2f})"
                         })
         
         # Find potential crediteur matches (always check for crediteuren)
