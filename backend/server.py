@@ -2539,6 +2539,136 @@ async def get_dashboard_summary():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting dashboard summary: {str(e)}")
 
+# Kosten Classificatie Endpoints
+@api_router.post("/bank-reconciliation/classify/{bank_transaction_id}")
+async def classify_bank_transaction(
+    bank_transaction_id: str,
+    classification_type: str = Query(..., regex="^(vast|variabel)$"),
+    category_name: str = Query(..., description="Naam van de kosten categorie")
+):
+    """Classificeer een niet-gematchte banktransactie als vaste of variabele kosten"""
+    try:
+        # Find the bank transaction
+        bank_transaction = await db.bank_transactions.find_one({"id": bank_transaction_id})
+        if not bank_transaction:
+            raise HTTPException(status_code=404, detail="Bank transactie niet gevonden")
+        
+        if bank_transaction.get('reconciled', False):
+            raise HTTPException(status_code=400, detail="Deze transactie is al gereconcilieerd")
+        
+        # Ensure it's a negative amount (expense)
+        transaction_amount = bank_transaction['amount']
+        if transaction_amount > 0:
+            raise HTTPException(status_code=400, detail="Alleen uitgaven (negatieve bedragen) kunnen worden geclassificeerd")
+        
+        # Create the classification record
+        classification = {
+            'id': str(uuid.uuid4()),
+            'bank_transaction_id': bank_transaction_id,
+            'classification_type': classification_type,  # 'vast' of 'variabel'
+            'category_name': category_name,
+            'amount': abs(transaction_amount),  # Store as positive amount
+            'date': bank_transaction.get('date'),
+            'description': bank_transaction.get('description', ''),
+            'counterparty': bank_transaction.get('counterparty_name', ''),
+            'created_at': datetime.now(timezone.utc).isoformat(),
+            'active': True
+        }
+        
+        # Store in appropriate collection
+        if classification_type == 'vast':
+            await db.vaste_kosten.insert_one(classification)
+        elif classification_type == 'variabel':
+            await db.variabele_kosten.insert_one(classification)
+        
+        # Mark bank transaction as reconciled
+        await db.bank_transactions.update_one(
+            {"id": bank_transaction_id},
+            {"$set": {
+                "reconciled": True,
+                "reconciled_date": datetime.now(timezone.utc).isoformat(),
+                "classification_type": classification_type,
+                "classification_id": classification['id']
+            }}
+        )
+        
+        return {
+            "message": f"Transactie succesvol geclassificeerd als {classification_type}e kosten",
+            "classification_id": classification['id'],
+            "classification_type": classification_type,
+            "category_name": category_name,
+            "amount": classification['amount']
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error classifying transaction: {str(e)}")
+
+@api_router.get("/vaste-kosten")
+async def get_vaste_kosten():
+    """Get all vaste kosten categorieën"""
+    try:
+        kosten = await db.vaste_kosten.find({"active": True}).sort([("created_at", -1)]).to_list(1000)
+        
+        # Group by category_name and sum amounts
+        categories = {}
+        for kost in kosten:
+            category = kost['category_name']
+            if category not in categories:
+                categories[category] = {
+                    'category_name': category,
+                    'total_amount': 0,
+                    'transaction_count': 0,
+                    'transactions': []
+                }
+            categories[category]['total_amount'] += kost['amount']
+            categories[category]['transaction_count'] += 1
+            categories[category]['transactions'].append({
+                'id': kost['id'],
+                'date': kost['date'],
+                'amount': kost['amount'],
+                'description': kost['description'],
+                'counterparty': kost.get('counterparty', ''),
+                'bank_transaction_id': kost['bank_transaction_id']
+            })
+        
+        return list(categories.values())
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching vaste kosten: {str(e)}")
+
+@api_router.get("/variabele-kosten") 
+async def get_variabele_kosten():
+    """Get all variabele kosten categorieën"""
+    try:
+        kosten = await db.variabele_kosten.find({"active": True}).sort([("created_at", -1)]).to_list(1000)
+        
+        # Group by category_name and sum amounts
+        categories = {}
+        for kost in kosten:
+            category = kost['category_name']
+            if category not in categories:
+                categories[category] = {
+                    'category_name': category,
+                    'total_amount': 0,
+                    'transaction_count': 0,
+                    'transactions': []
+                }
+            categories[category]['total_amount'] += kost['amount']
+            categories[category]['transaction_count'] += 1
+            categories[category]['transactions'].append({
+                'id': kost['id'],
+                'date': kost['date'],
+                'amount': kost['amount'],
+                'description': kost['description'],
+                'counterparty': kost.get('counterparty', ''),
+                'bank_transaction_id': kost['bank_transaction_id']
+            })
+        
+        return list(categories.values())
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching variabele kosten: {str(e)}")
+
 # Legacy routes (keep for compatibility)
 @api_router.get("/")
 async def root():
