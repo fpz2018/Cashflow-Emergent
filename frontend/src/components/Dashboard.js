@@ -4,31 +4,7 @@ import axios from 'axios';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Simple, robust tooltip component
-const Tooltip = ({ content, visible, x, y }) => {
-  if (!visible || !content) return null;
-
-  return (
-    <div 
-      style={{
-        position: 'fixed',
-        left: x + 10,
-        top: y - 10,
-        backgroundColor: 'white',
-        border: '2px solid #64748b',
-        borderRadius: '8px',
-        padding: '12px',
-        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-        zIndex: 10000,
-        maxWidth: '350px',
-        minWidth: '250px',
-        fontFamily: 'system-ui, sans-serif'
-      }}
-    >
-      {content}
-    </div>
-  );
-};
+// Uitklapbare rijen - veel betrouwbaarder dan tooltips
 
 const Dashboard = ({ onRefresh }) => {
   const [loading, setLoading] = useState(true);
