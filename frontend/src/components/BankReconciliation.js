@@ -11,6 +11,11 @@ const BankReconciliation = ({ onRefresh }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showClassificationModal, setShowClassificationModal] = useState(false);
+  const [classificationForm, setClassificationForm] = useState({
+    type: 'vast', // 'vast' or 'variabel'
+    categoryName: ''
+  });
 
   useEffect(() => {
     fetchUnmatchedTransactions();
