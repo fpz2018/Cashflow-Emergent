@@ -153,8 +153,8 @@ const Dashboard = ({ onRefresh }) => {
       {/* Dagelijkse Cashflow Tabel */}
       <div className="modern-card">
         <div className="modern-card-header">
-          <h3 className="text-xl font-semibold text-slate-900">Dagelijkse Cashflow Overzicht</h3>
-          <p className="text-sm text-slate-500">Komende 14 dagen</p>
+          <h3 className="text-xl font-semibold text-slate-900">📅 Dagelijkse Cashflow Prognose</h3>
+          <p className="text-sm text-slate-500">Komende 14 dagen - per dag overzicht</p>
         </div>
 
         <div className="overflow-x-auto">
