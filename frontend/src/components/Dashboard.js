@@ -112,17 +112,43 @@ const Dashboard = ({ onRefresh }) => {
       </div>
 
       {/* Huidig Banksaldo - Prominent */}
-      <div className="modern-card bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-        <div className="text-center py-8">
-          <h3 className="text-lg font-medium text-slate-700 mb-2">Huidig Banksaldo</h3>
+      <div className="modern-card bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 shadow-lg">
+        <div className="text-center py-6">
+          <h3 className="text-lg font-medium text-slate-700 mb-2">💳 Huidig Banksaldo</h3>
           <div className="text-5xl font-bold mb-2">
             <span className={currentBalance >= 0 ? 'text-emerald-600' : 'text-red-600'}>
               {formatCurrency(currentBalance)}
             </span>
           </div>
-          <p className="text-slate-600">Per vandaag</p>
+          <p className="text-slate-600">Per {formatDate(new Date()).split(',')[0]}</p>
         </div>
       </div>
+
+      {/* Quick Stats - Direct onder banksaldo */}
+      {cashflowData && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="modern-card text-center bg-emerald-50 border-emerald-200">
+            <h4 className="text-sm font-medium text-emerald-700 mb-2">📈 Verwachte Inkomsten (30d)</h4>
+            <div className="text-2xl font-bold text-emerald-600">
+              {formatCurrency(cashflowData.total_expected_income)}
+            </div>
+          </div>
+          
+          <div className="modern-card text-center bg-red-50 border-red-200">
+            <h4 className="text-sm font-medium text-red-700 mb-2">📉 Verwachte Uitgaven (30d)</h4>
+            <div className="text-2xl font-bold text-red-600">
+              {formatCurrency(Math.abs(cashflowData.total_expected_expenses))}
+            </div>
+          </div>
+          
+          <div className="modern-card text-center bg-slate-50 border-slate-200">
+            <h4 className="text-sm font-medium text-slate-700 mb-2">💡 Netto Prognose (30d)</h4>
+            <div className={`text-2xl font-bold ${cashflowData.net_expected >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {cashflowData.net_expected >= 0 ? '+' : ''}{formatCurrency(cashflowData.net_expected)}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Dagelijkse Cashflow Tabel */}
       <div className="modern-card">
