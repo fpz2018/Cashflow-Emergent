@@ -7,7 +7,7 @@ import requests
 import json
 
 def test_direct_crediteur_matching():
-    base_url = "https://cashflow-forecast-6.preview.emergentagent.com"
+    base_url = "https://cashflow-manager-30.preview.emergentagent.com"
     api_url = f"{base_url}/api"
     
     print("🎯 Direct Crediteur Matching Test")
@@ -100,7 +100,7 @@ def test_direct_crediteur_matching():
         return False
 
 def test_suggestions_with_crediteur_data():
-    base_url = "https://cashflow-forecast-6.preview.emergentagent.com"
+    base_url = "https://cashflow-manager-30.preview.emergentagent.com"
     api_url = f"{base_url}/api"
     
     print("\n🔍 Testing Suggestions with Crediteur Data")

@@ -1,0 +1,93 @@
+<analysis>
+The trajectory describes a complex, iterative development process for a cashflow application, initially an MVP, that evolved significantly based on user feedback. The AI engineer first focused on expanding bank reconciliation, specifically adding creditor matching and a daily cashflow forecast. This involved extensive debugging of frontend React rendering issues, backend API logic for suggestions, and refining matching tolerances. A major turning point occurred when the user provided a completely new, comprehensive product vision, shifting the focus to a phased build: foundational data, then corrections, forecast, final bank reconciliation, and manual classification. Subsequent work involved implementing new data models, API endpoints, and frontend components for these phases, including sophisticated Dutch currency/date parsing, name extraction, and robust bulk import functionalities. The project has largely pivoted to this new architectural plan.
+</analysis>
+
+<product_requirements>
+The user, a physiotherapy practice owner, needs a web application for daily cash flow insights. Initially, core features included a dashboard, manual transaction entry, robust CSV imports (EPD, BUNQ with Dutch formatting), copy-paste imports (insurers, creditors), expected payment calculations, and bank reconciliation for declarations.
+
+The **new, overarching product vision** (from Chat 246) is a comprehensive cashflow management flow:
+1.  **Foundational Data**: Import/manage insurers (payment terms), creditors (amounts, payment days), declarations (insurers, private patients), **new: other revenue (manual input), initial bank balance (e.g., 1-1-2025)**.
+2.  **Corrections & Adjustments**: **New: Credit invoices (private), credit declarations (insurers), correction invoices (insurers)**. Implement smart matching to original invoices and automatic recalculation of expected amounts.
+3.  **Forecast Generation**: **New: Daily bank balance forecast** integrating all income, expenses, and corrections.
+4.  **Bank Reconciliation**: The *final* step: import bank transactions, match against expected income (post-corrections) and fixed expenses (creditors).
+5.  **Manual Classification**: **New: Classify remaining unmatched transactions** as fixed costs, variable costs, or other income.
+</product_requirements>
+
+<key_technical_concepts>
+-   **Full-Stack**: React (frontend), FastAPI (backend), MongoDB (database).
+-   **Data Parsing**: Highly customized Python functions (, ) for Dutch locale-specific currency (e.g., € 1.200,00, thousands separators, negative signs) and date formats (dd-mm-yyyy).
+-   **Data Models**: Pydantic for API request/response validation and MongoDB integration.
+-   **API Design**: RESTful endpoints for CRUD, CSV/copy-paste imports, complex matching, and forecasting.
+-   **UI/UX**: React components for data visualization, forms, and interactive reconciliation.
+</key_technical_concepts>
+
+<code_architecture>
+The application uses a React SPA frontend with a FastAPI backend, interacting with MongoDB.
+
+**Directory Structure:**
+
+
+**Key Files:**
+-   ****:
+    -   **Importance**: Monolithic FastAPI backend. Handles all logic, DB connections, Pydantic models, and API endpoints.
+    -   **Changes**:
+        -   **New Models**: , , , , , .
+        -   **New Endpoints**: For , , ,  (including bulk import by type), .
+        -   **Enhanced Parsing**: Added  (handles thousands separators, negative signs) and . Integrated these into EPD, BUNQ, and copy-paste imports.
+        -   **Improved Matching**: Modified  for  filter, optional date filter, lower score threshold, and MongoDB aggregation for better sorting (date, amount). Added  for enhanced patient name matching.
+        -   **BUNQ Import Fix**: Removed  from BUNQ amount parsing to preserve original signs.
+        -   **Correction Logic**: Ensured correction amounts retain their negative sign and correctly update .
+
+-   ****:
+    -   **Importance**: Main routing and layout.
+    -   **Changes**: Added Data Setup tab to main navigation, managing  state.
+
+-   ****:
+    -   **Importance**: UI for matching bank transactions.
+    -   **Changes**: Initially modified to support creditor matching UI (badges, buttons), but reverted styling changes due to React errors. Backend fixes (creditor suggestions, amount interpretation, increased limits) were the primary solution.
+
+-   ****:
+    -   **Importance**: Manages different import tabs.
+    -   **Changes**: Integrated the Data Setup and Correcties tabs.
+
+-   ****: (NEW)
+    -   **Importance**: New component for setting up foundational data like starting bank balance, other revenue, and housing the  and  components.
+    -   **Changes**: Created to handle new input forms and integrate sub-components.
+
+-   ****: (NEW)
+    -   **Importance**: Manages correction data.
+    -   **Changes**: Created to include manual correction entry and separate sub-tabs for bulk copy-paste import of , ,  with type-specific column examples and API calls. Fixed React error in error message display.
+
+-   ****: (NEW)
+    -   **Importance**: Displays the daily cashflow forecast.
+    -   **Changes**: Created and integrated into .
+
+-   ****: (NEW)
+    -   **Importance**: Provides UI for selective or full data deletion from the database.
+    -   **Changes**: Created and integrated into .
+</code_architecture>
+
+<pending_tasks>
+The core product re-architecture plan is partially implemented.
+-   **Fase 4**: Improved Bank Reconciliatie (integrate all new data for matching).
+-   **Fase 5**: Handmatige Classificatie van onbekende transacties.
+-   Front-end implementation/visualization of the daily cashflow forecast in  is pending completion and robust testing.
+</pending_tasks>
+
+<current_work>
+Immediately before this summary request, the AI engineer was working on ensuring correct import of BUNQ bank transactions. The user reported that all imported BUNQ amounts were positive, despite containing expenses.
+
+The AI engineer:
+1.  Analyzed the provided  file, confirming that BUNQ natively uses correct positive/negative signs for income/expenses.
+2.  Identified a bug in  within the  function (around line 953) where  was forcing all amounts to be positive.
+3.  Removed the  function from this line:
+    
+4.  Cleaned up redundant, manual amount parsing logic in the same function, now relying on the robust  function for all Dutch currency formats.
+5.  Restarted the backend and re-tested the BUNQ import.
+
+The fix was successfully implemented, and BUNQ CSV imports now correctly preserve the original signs of transaction amounts, along with accurate parsing of Dutch currency formats (e.g.,  to ,  to ).
+</current_work>
+
+<optional_next_step>
+Continue with Phase 4: Verbeterde Bank Reconciliatie, integrating all new data for matching, as per the agreed plan.
+</optional_next_step>
