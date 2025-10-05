@@ -347,27 +347,66 @@ const Dashboard = ({ onRefresh }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                       <span 
-                        className="font-medium text-emerald-600 cursor-help hover:bg-emerald-50 px-2 py-1 rounded transition-colors"
-                        onMouseEnter={(e) => handleMouseEnter(e, 'income', day.payments || [])}
-                        onMouseLeave={handleMouseLeave}
+                        style={{
+                          fontWeight: '500',
+                          color: '#059669',
+                          cursor: 'help',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.backgroundColor = '#ecfdf5';
+                          handleMouseEnter(e, 'income', day.payments || []);
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.backgroundColor = 'transparent';
+                          handleMouseLeave();
+                        }}
                       >
                         {formatCurrency(dayIncome)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                       <span 
-                        className="font-medium text-red-600 cursor-help hover:bg-red-50 px-2 py-1 rounded transition-colors"
-                        onMouseEnter={(e) => handleMouseEnter(e, 'expense', day.payments || [])}
-                        onMouseLeave={handleMouseLeave}
+                        style={{
+                          fontWeight: '500',
+                          color: '#dc2626',
+                          cursor: 'help',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.backgroundColor = '#fef2f2';
+                          handleMouseEnter(e, 'expense', day.payments || []);
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.backgroundColor = 'transparent';
+                          handleMouseLeave();
+                        }}
                       >
                         {formatCurrency(dayExpenses)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                       <span 
-                        className={`font-semibold cursor-help hover:bg-slate-50 px-2 py-1 rounded transition-colors ${dayNet >= 0 ? 'text-emerald-600' : 'text-red-600'}`}
-                        onMouseEnter={(e) => handleMouseEnter(e, 'net', day.payments || [])}
-                        onMouseLeave={handleMouseLeave}
+                        style={{
+                          fontWeight: '600',
+                          color: dayNet >= 0 ? '#059669' : '#dc2626',
+                          cursor: 'help',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.backgroundColor = '#f8fafc';
+                          handleMouseEnter(e, 'net', day.payments || []);
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.backgroundColor = 'transparent';
+                          handleMouseLeave();
+                        }}
                       >
                         {dayNet >= 0 ? '+' : ''}{formatCurrency(dayNet)}
                       </span>
