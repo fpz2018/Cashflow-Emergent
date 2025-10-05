@@ -213,9 +213,13 @@ const Dashboard = ({ onRefresh }) => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                      <span className={`font-bold text-lg ${day.ending_balance >= 0 ? 'text-slate-900' : 'text-red-600'}`}>
+                      <div className={`px-3 py-1 rounded-lg font-bold text-lg inline-block ${
+                        day.ending_balance >= 0 
+                          ? 'bg-emerald-100 text-emerald-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
                         {formatCurrency(day.ending_balance)}
-                      </span>
+                      </div>
                     </td>
                   </tr>
                 );
