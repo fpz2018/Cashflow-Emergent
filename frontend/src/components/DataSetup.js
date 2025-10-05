@@ -124,6 +124,7 @@ const DataSetup = () => {
     { id: 'banksaldo', label: 'Bank Saldo', icon: 'bank' },
     { id: 'omzet', label: 'Overige Omzet', icon: 'plus' },
     { id: 'correcties', label: 'Correcties', icon: 'edit' },
+    { id: 'kosten', label: 'Kosten Overzicht', icon: 'money' },
     { id: 'cleanup', label: 'Data Cleanup', icon: 'trash' }
   ];
 
