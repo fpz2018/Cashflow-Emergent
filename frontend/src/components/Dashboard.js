@@ -4,6 +4,56 @@ import axios from 'axios';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+// Tooltip component for showing payment details
+const PaymentTooltip = ({ payments, type, visible, position }) => {
+  if (!visible || !payments || payments.length === 0) return null;
+
+  const filteredPayments = payments.filter(p => 
+    (type === 'income' && p.type === 'inkomst') ||
+    (type === 'expense' && p.type === 'uitgave')
+  );
+
+  if (filteredPayments.length === 0) return null;
+
+  return (
+    <div 
+      className="absolute z-50 bg-white border border-slate-300 rounded-lg shadow-lg p-3 max-w-sm min-w-64"
+      style={{ 
+        left: position.x + 10, 
+        top: position.y - 10,
+        maxHeight: '300px',
+        overflowY: 'auto'
+      }}
+    >
+      <div className="text-sm font-medium mb-2 text-slate-700">
+        {type === 'income' ? '💰 Inkomsten details:' : '💳 Uitgaven details:'}
+      </div>
+      <div className="space-y-1">
+        {filteredPayments.map((payment, idx) => (
+          <div key={idx} className="flex justify-between items-start gap-3 text-xs">
+            <div className="text-slate-600 flex-1">
+              {payment.beschrijving}
+            </div>
+            <div className={`font-medium whitespace-nowrap ${
+              payment.type === 'inkomst' ? 'text-emerald-600' : 'text-red-600'
+            }`}>
+              €{Math.abs(payment.bedrag).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 pt-2 border-t border-slate-200">
+        <div className="flex justify-between text-sm font-semibold">
+          <span>Totaal:</span>
+          <span className={type === 'income' ? 'text-emerald-600' : 'text-red-600'}>
+            €{filteredPayments.reduce((sum, p) => sum + Math.abs(p.bedrag), 0).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Dashboard = ({ onRefresh }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
