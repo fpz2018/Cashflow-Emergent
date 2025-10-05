@@ -350,13 +350,7 @@ const Dashboard = ({ onRefresh }) => {
 
       {/* Deze sectie is verplaatst naar boven */}
 
-      {/* Tooltip */}
-      <Tooltip 
-        content={tooltip.content}
-        visible={tooltip.visible}
-        x={tooltip.x}
-        y={tooltip.y}
-      />
+      {/* Uitklapbare rijen geven betrouwbaar inzicht in alle transacties */}
     </div>
   );
 };
