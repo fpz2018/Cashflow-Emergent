@@ -59,6 +59,117 @@ const Dashboard = ({ onRefresh }) => {
     setExpandedRow(expandedRow === date ? null : date);
   };
 
+  const handleEditTransaction = (payment, dayDate) => {
+    setEditingTransaction({ ...payment, dayDate });
+    setEditForm({
+      beschrijving: payment.beschrijving || '',
+      bedrag: Math.abs(payment.bedrag || 0).toString(),
+      type: payment.type
+    });
+  };
+
+  const handleSaveTransaction = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Determine the correct API endpoint based on transaction type and content
+      let apiEndpoint;
+      let updateData = {
+        description: editForm.beschrijving,
+        amount: editForm.type === 'uitgave' ? -Math.abs(parseFloat(editForm.bedrag)) : Math.abs(parseFloat(editForm.bedrag))
+      };
+
+      // Check if this is a declaration (has invoice number) or creditor payment
+      if (editingTransaction.beschrijving?.includes('Declaratie')) {
+        // This is likely a transaction from the transactions collection
+        apiEndpoint = `${API}/transactions/${editingTransaction.id || 'unknown'}`;
+        updateData = {
+          ...updateData,
+          type: editForm.type === 'inkomst' ? 'income' : 'expense'
+        };
+      } else if (editingTransaction.beschrijving?.includes('Betaling')) {
+        // This is likely a creditor payment - we need to update the creditor
+        const crediteurNaam = editingTransaction.beschrijving.replace('Betaling ', '');
+        apiEndpoint = `${API}/crediteuren`;
+        
+        // Find and update the specific creditor
+        const crediteurenResponse = await axios.get(`${API}/crediteuren`);
+        const crediteuren = crediteurenResponse.data;
+        const targetCrediteur = crediteuren.find(c => c.crediteur === crediteurNaam);
+        
+        if (targetCrediteur) {
+          updateData = {
+            ...targetCrediteur,
+            crediteur: editForm.beschrijving.replace('Betaling ', ''),
+            bedrag: Math.abs(parseFloat(editForm.bedrag))
+          };
+          apiEndpoint = `${API}/crediteuren/${targetCrediteur.id}`;
+        }
+      } else {
+        // Generic transaction update
+        apiEndpoint = `${API}/transactions/${editingTransaction.id || 'unknown'}`;
+      }
+
+      await axios.put(apiEndpoint, updateData);
+      
+      // Refresh data
+      await fetchCashflowForecast();
+      
+      // Close edit modal
+      setEditingTransaction(null);
+      setEditForm({ beschrijving: '', bedrag: '', type: 'inkomst' });
+      
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      setError(`Fout bij wijzigen transactie: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteTransaction = async () => {
+    if (!window.confirm('Weet u zeker dat u deze transactie wilt verwijderen?')) return;
+    
+    try {
+      setLoading(true);
+      setError('');
+
+      // Similar logic for deletion
+      let apiEndpoint;
+      
+      if (editingTransaction.beschrijving?.includes('Declaratie')) {
+        apiEndpoint = `${API}/transactions/${editingTransaction.id}`;
+      } else if (editingTransaction.beschrijving?.includes('Betaling')) {
+        const crediteurNaam = editingTransaction.beschrijving.replace('Betaling ', '');
+        const crediteurenResponse = await axios.get(`${API}/crediteuren`);
+        const crediteuren = crediteurenResponse.data;
+        const targetCrediteur = crediteuren.find(c => c.crediteur === crediteurNaam);
+        
+        if (targetCrediteur) {
+          apiEndpoint = `${API}/crediteuren/${targetCrediteur.id}`;
+        }
+      } else {
+        apiEndpoint = `${API}/transactions/${editingTransaction.id}`;
+      }
+
+      await axios.delete(apiEndpoint);
+      
+      // Refresh data
+      await fetchCashflowForecast();
+      
+      // Close edit modal
+      setEditingTransaction(null);
+      setEditForm({ beschrijving: '', bedrag: '', type: 'inkomst' });
+      
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      setError(`Fout bij verwijderen transactie: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const renderExpandedRow = (day) => {
     if (!day.payments || day.payments.length === 0) {
       return (
