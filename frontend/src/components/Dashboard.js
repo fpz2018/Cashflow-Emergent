@@ -114,27 +114,59 @@ const Dashboard = ({ onRefresh }) => {
       alert('Transactie succesvol bijgewerkt!');
       
     } catch (error) {
-      console.error('Error updating transaction:', error);
+      console.error('=== COMPLETE ERROR DEBUG ===');
+      console.error('Full error object:', error);
+      console.error('Error message:', error.message);
       console.error('Error response:', error.response);
-      console.error('Error data:', error.response?.data);
+      console.error('Response status:', error.response?.status);
+      console.error('Response statusText:', error.response?.statusText);
+      console.error('Response data:', error.response?.data);
+      console.error('Response data type:', typeof error.response?.data);
+      console.error('Form data that was sent:', editForm);
+      console.error('Transaction being edited:', editingTransaction);
+      console.error('=== END ERROR DEBUG ===');
       
-      let errorMessage = 'Onbekende fout bij wijzigen transactie';
+      let errorMessage = 'Onbekende fout';
       
-      if (error.response?.data) {
-        if (typeof error.response.data === 'string') {
-          errorMessage = error.response.data;
-        } else if (error.response.data.detail) {
-          errorMessage = error.response.data.detail;
-        } else if (error.response.data.message) {
-          errorMessage = error.response.data.message;
-        } else {
-          errorMessage = JSON.stringify(error.response.data);
+      // Try to extract meaningful error message
+      if (error.response) {
+        // Server responded with error status
+        const status = error.response.status;
+        const data = error.response.data;
+        
+        errorMessage = `HTTP ${status}`;
+        
+        if (data) {
+          if (typeof data === 'string') {
+            errorMessage += `: ${data}`;
+          } else if (data.detail) {
+            errorMessage += `: ${data.detail}`;
+          } else if (data.message) {
+            errorMessage += `: ${data.message}`;
+          } else if (data.error) {
+            errorMessage += `: ${data.error}`;
+          } else {
+            // Try to stringify carefully
+            try {
+              const dataStr = JSON.stringify(data, null, 2);
+              errorMessage += `: ${dataStr}`;
+            } catch (jsonError) {
+              errorMessage += ': [Could not parse error data]';
+            }
+          }
         }
+      } else if (error.request) {
+        // Request was made but no response received
+        errorMessage = 'Geen response van server - check internet connectie';
       } else if (error.message) {
+        // Something else happened
         errorMessage = error.message;
       }
       
       setError(`Fout bij wijzigen transactie: ${errorMessage}`);
+      
+      // Also show an alert with the error for immediate feedback
+      alert(`Er is een fout opgetreden:\n\n${errorMessage}\n\nCheck de browser console voor meer details.`);
     } finally {
       setLoading(false);
     }
