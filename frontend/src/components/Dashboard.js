@@ -78,15 +78,40 @@ const Dashboard = ({ onRefresh }) => {
       console.log('Editing transaction:', editingTransaction);
       console.log('Form data:', editForm);
       
-      // For now, let's show a message that this feature needs backend implementation
-      alert('Deze functie vereist nog backend implementatie. Voor nu kunt u:' +
-            '\n1. De transactie bekijken en controleren' +
-            '\n2. Wijzigingen handmatig aanbrengen via Data Setup' +
-            '\n3. Of via Import & Reconciliatie opnieuw importeren');
+      // Determine transaction type from the description or original data
+      let transactionType = 'declaratie'; // Default
+      let transactionId = editingTransaction.transaction_id || editingTransaction.id;
+      
+      if (editingTransaction.transaction_type) {
+        transactionType = editingTransaction.transaction_type;
+      } else if (editingTransaction.beschrijving?.includes('Betaling')) {
+        transactionType = 'crediteur';
+      } else if (editingTransaction.beschrijving?.includes('Overige omzet')) {
+        transactionType = 'overige_omzet';
+      }
+      
+      // Call the backend edit endpoint
+      const response = await axios.put(`${API}/dashboard/transaction/edit`, null, {
+        params: {
+          transaction_id: transactionId,
+          transaction_type: transactionType,
+          description: editForm.beschrijving,
+          amount: editForm.type === 'uitgave' ? -Math.abs(parseFloat(editForm.bedrag)) : Math.abs(parseFloat(editForm.bedrag)),
+          date: editForm.datum
+        }
+      });
+      
+      console.log('Transaction updated successfully:', response.data);
+      
+      // Refresh cashflow data to show changes
+      await fetchCashflowForecast();
       
       // Close edit modal
       setEditingTransaction(null);
       setEditForm({ beschrijving: '', bedrag: '', type: 'inkomst', datum: '' });
+      
+      // Show success message
+      alert('Transactie succesvol bijgewerkt!');
       
     } catch (error) {
       console.error('Error updating transaction:', error);
