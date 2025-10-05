@@ -50,7 +50,7 @@ const Dashboard = ({ onRefresh }) => {
     return new Intl.NumberFormat('nl-NL', {
       style: 'currency',
       currency: 'EUR'
-    }).format(amount);
+    }).format(amount || 0);
   };
 
   const formatDate = (dateString) => {
@@ -62,11 +62,27 @@ const Dashboard = ({ onRefresh }) => {
     });
   };
 
-  if (loading && !cashflowSummary) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-64">
         <div className="spinner w-8 h-8"></div>
         <span className="ml-3 text-slate-600">Cashflow gegevens laden...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-64">
+        <div className="text-red-600">
+          {error}
+          <button 
+            onClick={fetchCashflowForecast}
+            className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg"
+          >
+            Opnieuw proberen
+          </button>
+        </div>
       </div>
     );
   }
