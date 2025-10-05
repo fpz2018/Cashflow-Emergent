@@ -210,6 +210,18 @@
           agent: "testing"
           comment: "BUNQ DUTCH CURRENCY IMPORT TESTING COMPLETED ✅ Successfully tested the aangepaste BUNQ bank import functionality as requested in review: ✅ PARSE_DUTCH_CURRENCY FUNCTION WORKING CORRECTLY: All test cases passed - '€ -89,75' → -89.75 ✅, '€ 124,76' → 124.76 ✅, '€ 1.311,03' → 1311.03 ✅, '€ -2.780,03' → -2780.03 ✅ ✅ VALIDATE_BUNQ_ROW FUNCTION WORKING: Correctly processes BUNQ CSV data with Dutch formatting, preserves signs properly, handles thousands separator (.) and decimal separator (,) correctly ✅ SIGN PRESERVATION VERIFIED: Negative amounts stay negative (expenses), positive amounts stay positive (income), no abs() conversion detected ✅ BUNQ CSV FORMAT SUPPORT: Correctly handles semicolon-delimited CSV format (standard for Dutch BUNQ exports) to avoid conflicts with decimal comma ✅ IMPORT EXECUTION SUCCESSFUL: All 4 test transactions imported successfully with correct amounts and signs preserved ✅ DATABASE VERIFICATION: All expected amounts found in database (-89.75, 124.76, 1311.03, -2780.03) ✅ CONCLUSION: BUNQ import modifications working correctly - removed abs() function, Dutch currency parsing functional, negative/positive amounts properly preserved as requested"
 
+  - task: "Handmatige kostencalssificatie voor bank reconciliatie"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "💰 COST CLASSIFICATION FUNCTIONALITY TESTING COMPLETED ✅ Comprehensive testing of handmatige kostencalssificatie voor bank reconciliatie as requested in review: ✅ CLASSIFICATION ENDPOINT WORKING: /api/bank-reconciliation/classify/{bank_transaction_id} successfully classifies negative bank transactions as 'vast' or 'variabel' costs with custom category names ✅ VALIDATION RULES WORKING: Correctly rejects positive transactions (income) and already reconciled transactions with appropriate error messages ✅ COST OVERVIEW ENDPOINTS WORKING: /api/vaste-kosten and /api/variabele-kosten return properly grouped categories with totals, transaction counts, and detailed transaction lists ✅ DATA INTEGRITY MAINTAINED: Bank transactions correctly marked as reconciled with classification metadata, costs stored with positive amounts, proper date and description preservation ✅ CATEGORY GROUPING: Multiple transactions can be classified under same category name, totals calculated correctly, transaction details preserved ✅ EDGE CASE TESTING: Different category names work correctly, validation prevents misuse of classification system ✅ DATABASE COLLECTIONS: Classifications properly stored in separate vaste_kosten and variabele_kosten collections with all required fields ✅ CONCLUSION: Complete cost classification workflow working - niet-gematchte uitgaven can be manually categorized and automatically appear in appropriate cost overview lists for cashflow planning"
+
 ## frontend:
   - task: "Bank reconciliation UI voor crediteur matching"
     implemented: true
