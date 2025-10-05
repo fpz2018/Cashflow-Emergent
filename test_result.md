@@ -264,7 +264,7 @@
 
 ## test_plan:
   current_focus:
-    []
+    - "Improved bank matching logic testing"
   stuck_tasks:
     []
   test_all: false
