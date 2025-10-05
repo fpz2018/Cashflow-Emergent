@@ -2547,10 +2547,13 @@ async def get_cashflow_forecast(days: int = 30):
             
             forecast_days.append({
                 'date': forecast_date.isoformat(),
-                'inkomsten': daily_inkomsten,
-                'uitgaven': abs(daily_uitgaven),
+                'expected_income': daily_inkomsten,  # Frontend expects this name
+                'expected_expenses': daily_uitgaven,  # Keep negative for frontend
+                'inkomsten': daily_inkomsten,  # Keep for backward compatibility
+                'uitgaven': abs(daily_uitgaven),  # Keep for backward compatibility
                 'net_cashflow': daily_net,
-                'verwachte_saldo': current_balance,
+                'ending_balance': current_balance,  # Frontend expects this name
+                'verwachte_saldo': current_balance,  # Keep for backward compatibility
                 'payments': [
                     p for p in verwachte_betalingen 
                     if p['datum'] == forecast_date
