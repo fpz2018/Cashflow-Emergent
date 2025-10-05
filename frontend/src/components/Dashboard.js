@@ -4,81 +4,28 @@ import axios from 'axios';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Tooltip component for showing payment details
-const PaymentTooltip = ({ payments, type, visible, position }) => {
-  if (!visible || !payments || payments.length === 0) {
-    return null;
-  }
-
-  let filteredPayments;
-  let title;
-  
-  if (type === 'income') {
-    filteredPayments = payments.filter(p => p.type === 'inkomst');
-    title = '💰 Inkomsten details:';
-  } else if (type === 'expense') {
-    filteredPayments = payments.filter(p => p.type === 'uitgave');
-    title = '💳 Uitgaven details:';
-  } else if (type === 'net') {
-    filteredPayments = payments;
-    title = '📊 Alle transacties:';
-  }
-
-  if (!filteredPayments || filteredPayments.length === 0) {
-    return (
-      <div 
-        className="fixed z-[9999] bg-white border border-slate-400 rounded-lg shadow-xl p-3 max-w-xs"
-        style={{ 
-          left: Math.min(position.x + 10, window.innerWidth - 300), 
-          top: Math.max(position.y - 10, 10),
-          pointerEvents: 'none'
-        }}
-      >
-        <div className="text-sm text-slate-500">
-          Geen {type === 'income' ? 'inkomsten' : 'uitgaven'} voor deze dag
-        </div>
-      </div>
-    );
-  }
+// Simple, robust tooltip component
+const Tooltip = ({ content, visible, x, y }) => {
+  if (!visible || !content) return null;
 
   return (
     <div 
-      className="fixed z-[9999] bg-white border border-slate-400 rounded-lg shadow-xl p-3 max-w-sm min-w-72"
-      style={{ 
-        left: Math.min(position.x + 10, window.innerWidth - 350), 
-        top: Math.max(position.y - 10, 10),
-        maxHeight: '400px',
-        overflowY: 'auto',
-        pointerEvents: 'none'
+      style={{
+        position: 'fixed',
+        left: x + 10,
+        top: y - 10,
+        backgroundColor: 'white',
+        border: '2px solid #64748b',
+        borderRadius: '8px',
+        padding: '12px',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+        zIndex: 10000,
+        maxWidth: '350px',
+        minWidth: '250px',
+        fontFamily: 'system-ui, sans-serif'
       }}
     >
-      <div className="text-sm font-semibold mb-2 text-slate-800 border-b pb-1">
-        {title}
-      </div>
-      <div className="space-y-1.5">
-        {filteredPayments.map((payment, idx) => (
-          <div key={idx} className="flex justify-between items-start gap-3 text-xs bg-slate-50 p-2 rounded">
-            <div className="text-slate-700 flex-1 font-medium">
-              {payment.beschrijving || 'Geen beschrijving'}
-            </div>
-            <div className={`font-bold whitespace-nowrap text-sm ${
-              payment.type === 'inkomst' ? 'text-emerald-700' : 'text-red-700'
-            }`}>
-              {payment.type === 'inkomst' ? '+' : '-'}€{Math.abs(payment.bedrag || 0).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
-            </div>
-          </div>
-        ))}
-      </div>
-      {type !== 'net' && (
-        <div className="mt-3 pt-2 border-t border-slate-300">
-          <div className="flex justify-between text-sm font-bold bg-slate-100 p-2 rounded">
-            <span className="text-slate-700">Totaal:</span>
-            <span className={type === 'income' ? 'text-emerald-700' : 'text-red-700'}>
-              €{filteredPayments.reduce((sum, p) => sum + Math.abs(p.bedrag || 0), 0).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-        </div>
-      )}
+      {content}
     </div>
   );
 };
