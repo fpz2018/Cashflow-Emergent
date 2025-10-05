@@ -291,7 +291,11 @@ const Dashboard = ({ onRefresh }) => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                      <span className={`font-semibold ${dayNet >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      <span 
+                        className={`font-semibold cursor-help hover:bg-slate-50 px-2 py-1 rounded transition-colors ${dayNet >= 0 ? 'text-emerald-600' : 'text-red-600'}`}
+                        onMouseEnter={(e) => handleMouseEnter(e, 'net', day.payments || [])}
+                        onMouseLeave={handleMouseLeave}
+                      >
                         {dayNet >= 0 ? '+' : ''}{formatCurrency(dayNet)}
                       </span>
                     </td>
