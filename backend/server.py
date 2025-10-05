@@ -2453,13 +2453,34 @@ async def get_cashflow_forecast(days: int = 30):
                     termijn = verzekeraar_termijn
                     break
             
-            verwachte_datum = transaction_date + timedelta(days=termijn)
-            verwachte_betalingen.append({
-                'datum': verwachte_datum,
-                'bedrag': trans['amount'],
-                'type': 'inkomst',
-                'beschrijving': f"Declaratie {trans.get('invoice_number', '')}"
-            })
+            # Apply any corrections to this transaction
+            original_amount = trans['amount']
+            corrected_amount = original_amount
+            
+            # Find corrections for this transaction
+            corrections = await db.correcties.find({
+                "original_transaction_id": trans['id'],
+                "matched": True
+            }).to_list(10)
+            
+            for correction in corrections:
+                corrected_amount += correction.get('amount', 0)  # Corrections are usually negative
+            
+            # Only include if there's still an amount to expect after corrections
+            if corrected_amount > 0:
+                verwachte_datum = transaction_date + timedelta(days=termijn)
+                
+                # Determine payment terms based on category
+                if trans.get('category') == 'particulier':
+                    # Particuliere patiënten betalen meestal direct
+                    verwachte_datum = transaction_date + timedelta(days=7)  # 1 week
+                
+                verwachte_betalingen.append({
+                    'datum': verwachte_datum,
+                    'bedrag': corrected_amount,  # Use corrected amount
+                    'type': 'inkomst',
+                    'beschrijving': f"Declaratie {trans.get('invoice_number', '')} (gecorrigeerd: €{corrected_amount:.2f})" if corrected_amount != original_amount else f"Declaratie {trans.get('invoice_number', '')}"
+                })
         
         # Crediteur betalingen (uitgaven)
         crediteuren = await db.crediteuren.find({"actief": True}).to_list(1000)
