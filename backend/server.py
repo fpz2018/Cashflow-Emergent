@@ -2863,8 +2863,34 @@ async def edit_dashboard_transaction(
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
         
-        # Handle geclassificeerde kosten (classified costs)
-        if "Vaste kosten:" in description or "Variabele kosten:" in description:
+        # Handle geclassificeerde kosten (classified costs) by transaction type
+        if transaction_type in ["vaste_kosten", "variabele_kosten"]:
+            collection = db.vaste_kosten if transaction_type == "vaste_kosten" else db.variabele_kosten
+            collection_name = transaction_type
+            
+            # transaction_id is the category name for classified costs
+            category_name = transaction_id
+            
+            # Update all records in that category
+            update_result = await collection.update_many(
+                {"category_name": category_name, "active": True},
+                {"$set": {
+                    "amount": abs(amount)
+                }}
+            )
+            
+            if update_result.matched_count == 0:
+                raise HTTPException(status_code=404, detail=f"Geen {collection_name} gevonden voor categorie: {category_name}")
+            
+            return {
+                "message": f"Geclassificeerde kosten succesvol bijgewerkt",
+                "updated_records": update_result.modified_count,
+                "category": category_name,
+                "collection": collection_name
+            }
+        
+        # Handle legacy format for backwards compatibility
+        elif "Vaste kosten:" in description or "Variabele kosten:" in description:
             # Extract category name from description
             if "Vaste kosten:" in description:
                 category_name = description.replace("Vaste kosten: ", "").replace(" (gemiddeld)", "")
@@ -2879,7 +2905,6 @@ async def edit_dashboard_transaction(
             update_result = await collection.update_many(
                 {"category_name": category_name, "active": True},
                 {"$set": {
-                    "category_name": description.split(": ")[1].replace(" (gemiddeld)", "").replace(" (geschat)", ""),
                     "amount": abs(amount)
                 }}
             )
