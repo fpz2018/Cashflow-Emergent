@@ -294,95 +294,71 @@ const Dashboard = ({ onRefresh }) => {
                 const dayExpenses = Math.abs(day.expected_expenses || 0);
                 const dayNet = dayIncome - dayExpenses;
                 const isToday = day.date === new Date().toISOString().split('T')[0];
+                const isExpanded = expandedRow === day.date;
+                const hasTransactions = day.payments && day.payments.length > 0;
                 
                 return (
-                  <tr key={day.date} className={isToday ? 'bg-blue-50' : ''}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-slate-900">
-                        {formatDate(day.date)}
-                        {isToday && (
-                          <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            Vandaag
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                      <span 
-                        style={{
-                          fontWeight: '500',
-                          color: '#059669',
-                          cursor: 'help',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          transition: 'background-color 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = '#ecfdf5';
-                          handleMouseEnter(e, 'income', day.payments || []);
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = 'transparent';
-                          handleMouseLeave();
-                        }}
-                      >
-                        {formatCurrency(dayIncome)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                      <span 
-                        style={{
-                          fontWeight: '500',
-                          color: '#dc2626',
-                          cursor: 'help',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          transition: 'background-color 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = '#fef2f2';
-                          handleMouseEnter(e, 'expense', day.payments || []);
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = 'transparent';
-                          handleMouseLeave();
-                        }}
-                      >
-                        {formatCurrency(dayExpenses)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                      <span 
-                        style={{
-                          fontWeight: '600',
-                          color: dayNet >= 0 ? '#059669' : '#dc2626',
-                          cursor: 'help',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          transition: 'background-color 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = '#f8fafc';
-                          handleMouseEnter(e, 'net', day.payments || []);
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = 'transparent';
-                          handleMouseLeave();
-                        }}
-                      >
-                        {dayNet >= 0 ? '+' : ''}{formatCurrency(dayNet)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                      <div className={`px-3 py-1 rounded-lg font-bold text-lg inline-block ${
-                        day.ending_balance >= 0 
-                          ? 'bg-emerald-100 text-emerald-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {formatCurrency(day.ending_balance)}
-                      </div>
-                    </td>
-                  </tr>
+                  <React.Fragment key={day.date}>
+                    <tr 
+                      className={`${isToday ? 'bg-blue-50' : ''} ${hasTransactions ? 'cursor-pointer hover:bg-slate-50' : ''} transition-colors`}
+                      onClick={() => hasTransactions && toggleRowExpansion(day.date)}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          {hasTransactions && (
+                            <button className="mr-2 text-slate-500 hover:text-slate-700">
+                              <svg 
+                                className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`} 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </button>
+                          )}
+                          <div className="text-sm font-medium text-slate-900">
+                            {formatDate(day.date)}
+                            {isToday && (
+                              <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                Vandaag
+                              </span>
+                            )}
+                            {hasTransactions && (
+                              <span className="ml-2 text-xs text-slate-500">
+                                ({day.payments.length} transacties)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        <span className="font-medium text-emerald-600">
+                          {formatCurrency(dayIncome)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        <span className="font-medium text-red-600">
+                          {formatCurrency(dayExpenses)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        <span className={`font-semibold ${dayNet >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                          {dayNet >= 0 ? '+' : ''}{formatCurrency(dayNet)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        <div className={`px-3 py-1 rounded-lg font-bold text-lg inline-block ${
+                          day.ending_balance >= 0 
+                            ? 'bg-emerald-100 text-emerald-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {formatCurrency(day.ending_balance)}
+                        </div>
+                      </td>
+                    </tr>
+                    {isExpanded && renderExpandedRow(day)}
+                  </React.Fragment>
                 );
               })}
             </tbody>
