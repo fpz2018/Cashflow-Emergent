@@ -12,6 +12,12 @@ const Dashboard = ({ onRefresh }) => {
   const [cashflowData, setCashflowData] = useState(null);
   const [currentBalance, setCurrentBalance] = useState(0);
   const [expandedRow, setExpandedRow] = useState(null);
+  const [editingTransaction, setEditingTransaction] = useState(null);
+  const [editForm, setEditForm] = useState({
+    beschrijving: '',
+    bedrag: '',
+    type: 'inkomst'
+  });
 
   // Fetch dagelijkse cashflow forecast
   const fetchCashflowForecast = async () => {
