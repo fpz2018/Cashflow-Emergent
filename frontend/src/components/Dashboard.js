@@ -133,11 +133,19 @@ const Dashboard = ({ onRefresh }) => {
 
   const handleMouseEnter = (event, type, payments) => {
     const rect = event.target.getBoundingClientRect();
+    const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+    
+    console.log('Tooltip triggered:', { type, payments: payments?.length || 0 });
+    
     setTooltip({
       visible: true,
       type: type,
-      payments: payments,
-      position: { x: rect.left, y: rect.top }
+      payments: payments || [],
+      position: { 
+        x: rect.left + scrollX, 
+        y: rect.top + scrollY 
+      }
     });
   };
 
