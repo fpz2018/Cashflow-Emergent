@@ -2851,13 +2851,24 @@ async def edit_dashboard_transaction(
 ):
     """Edit a transaction from the dashboard forecast"""
     try:
-        print(f"DEBUG: Editing transaction - ID: {transaction_id}, Type: {transaction_type}")
+        print(f"DEBUG: Editing transaction - ID: {transaction_id}, Type: {transaction_type}, Description: {description}")
+        
+        # Check for missing transaction_id
+        if not transaction_id:
+            raise HTTPException(status_code=400, detail="transaction_id is required but was not provided")
         
         # Validate date format
         try:
             datetime.fromisoformat(date)
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        
+        # Handle special cases - geclassificeerde kosten cannot be edited directly
+        if "Vaste kosten:" in description or "Variabele kosten:" in description:
+            raise HTTPException(
+                status_code=400, 
+                detail="Geclassificeerde kosten kunnen niet direct bewerkt worden. Gebruik 'Instellingen' → 'Kosten Overzicht' om deze aan te passen."
+            )
         
         # Determine which collection to update based on transaction type
         if transaction_type == "declaratie":
