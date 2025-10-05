@@ -2498,17 +2498,38 @@ async def get_cashflow_forecast(days: int = 30):
         
         # Crediteur betalingen (uitgaven)
         crediteuren = await db.crediteuren.find({"actief": True}).to_list(1000)
+        print(f"DEBUG: Processing {len(crediteuren)} active crediteuren for forecast")
+        
         for crediteur in crediteuren:
-            # Calculate next few months of payments
-            for month_offset in range(0, 3):  # Next 3 months
+            # Calculate next few months of payments starting from current month
+            current_month = start_date.replace(day=1)
+            
+            for month_offset in range(0, 4):  # Current + next 3 months = 4 months total
                 try:
-                    target_date = start_date.replace(day=1) + timedelta(days=32 * month_offset)
-                    target_date = target_date.replace(day=crediteur['dag'])
+                    if month_offset == 0:
+                        # Current month - check if payment day hasn't passed yet
+                        target_date = start_date.replace(day=crediteur['dag'])
+                        if target_date < start_date:
+                            # Payment day already passed this month, skip to next month
+                            continue
+                    else:
+                        # Future months
+                        year = current_month.year
+                        month = current_month.month + month_offset
+                        
+                        # Handle year rollover
+                        while month > 12:
+                            month -= 12
+                            year += 1
+                            
+                        target_date = date(year, month, crediteur['dag'])
                     
-                    if target_date >= start_date and target_date <= start_date + timedelta(days=days):
+                    # Check if target date is within forecast period
+                    if start_date <= target_date <= start_date + timedelta(days=days):
+                        crediteur_amount = crediteur.get('bedrag', 0)
                         verwachte_betalingen.append({
                             'datum': target_date,
-                            'bedrag': -crediteur['bedrag'],  # Negative for expense
+                            'bedrag': -crediteur_amount,  # Negative for expense
                             'type': 'uitgave',
                             'beschrijving': f"Betaling {crediteur['crediteur']}",
                             'transaction_id': crediteur['id'],
@@ -2516,11 +2537,14 @@ async def get_cashflow_forecast(days: int = 30):
                             'original_data': {
                                 'crediteur_naam': crediteur['crediteur'],
                                 'dag': crediteur['dag'],
-                                'bedrag': crediteur['bedrag']
+                                'bedrag': crediteur_amount
                             }
                         })
-                except ValueError:
+                        print(f"DEBUG: Added crediteur payment - {crediteur['crediteur']} on {target_date} for €{crediteur_amount}")
+                        
+                except ValueError as e:
                     # Skip invalid dates (like 31st in February)
+                    print(f"DEBUG: Skipped invalid date for {crediteur['crediteur']} day {crediteur['dag']}: {e}")
                     continue
         
         # Add overige omzet (other revenue)
