@@ -79,7 +79,8 @@ const Dashboard = ({ onRefresh }) => {
       let apiEndpoint;
       let updateData = {
         description: editForm.beschrijving,
-        amount: editForm.type === 'uitgave' ? -Math.abs(parseFloat(editForm.bedrag)) : Math.abs(parseFloat(editForm.bedrag))
+        amount: editForm.type === 'uitgave' ? -Math.abs(parseFloat(editForm.bedrag)) : Math.abs(parseFloat(editForm.bedrag)),
+        date: editForm.datum
       };
 
       // Check if this is a declaration (has invoice number) or creditor payment
