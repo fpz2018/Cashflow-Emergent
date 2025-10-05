@@ -276,43 +276,29 @@ const Dashboard = ({ onRefresh }) => {
                   💰 Inkomsten ({inkomsten.length})
                 </h4>
                 <div className="space-y-2">
-                  {inkomsten.map((payment, idx) => {
-                    // Check if this payment can be edited
-                    const isEditable = payment.transaction_id && 
-                                     !payment.beschrijving?.includes('Vaste kosten:') && 
-                                     !payment.beschrijving?.includes('Variabele kosten:');
-                    
-                    return (
-                      <div key={idx} className="flex justify-between items-center bg-emerald-50 p-3 rounded-lg hover:bg-emerald-100 transition-colors">
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-slate-800">
-                            {payment.beschrijving || 'Geen beschrijving'}
-                            {!isEditable && (
-                              <span className="ml-2 text-xs text-slate-500 bg-slate-200 px-2 py-1 rounded">
-                                Alleen-lezen
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-emerald-700 font-bold">
-                            +{formatCurrency(Math.abs(payment.bedrag || 0))}
-                          </div>
-                          {isEditable && (
-                            <button
-                              onClick={() => handleEditTransaction(payment, day.date)}
-                              className="p-1 text-slate-500 hover:text-emerald-700 hover:bg-white rounded transition-colors"
-                              title="Bewerk transactie"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
-                          )}
+                  {inkomsten.map((payment, idx) => (
+                    <div key={idx} className="flex justify-between items-center bg-emerald-50 p-3 rounded-lg hover:bg-emerald-100 transition-colors">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-slate-800">
+                          {payment.beschrijving || 'Geen beschrijving'}
                         </div>
                       </div>
-                    );
-                  })}
+                      <div className="flex items-center gap-2">
+                        <div className="text-emerald-700 font-bold">
+                          +{formatCurrency(Math.abs(payment.bedrag || 0))}
+                        </div>
+                        <button
+                          onClick={() => handleEditTransaction(payment, day.date)}
+                          className="p-1 text-slate-500 hover:text-emerald-700 hover:bg-white rounded transition-colors"
+                          title="Bewerk transactie"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                   <div className="flex justify-between items-center bg-emerald-100 p-2 rounded font-bold text-emerald-800">
                     <span>Totaal Inkomsten:</span>
                     <span>+{formatCurrency(inkomsten.reduce((sum, p) => sum + Math.abs(p.bedrag || 0), 0))}</span>
