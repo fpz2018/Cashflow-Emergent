@@ -2541,7 +2541,13 @@ async def get_cashflow_forecast(days: int = 30):
                             'datum': next_occurrence,
                             'bedrag': omzet['amount'],
                             'type': 'inkomst',
-                            'beschrijving': f"Overige omzet: {omzet['description']}"
+                            'beschrijving': f"Overige omzet: {omzet['description']}",
+                            'transaction_id': omzet.get('id', str(uuid.uuid4())),
+                            'transaction_type': 'overige_omzet',
+                            'original_data': {
+                                'description': omzet['description'],
+                                'recurring': omzet.get('recurring', True)
+                            }
                         })
                 except ValueError:
                     continue
