@@ -2510,7 +2510,14 @@ async def get_cashflow_forecast(days: int = 30):
                             'datum': target_date,
                             'bedrag': -crediteur['bedrag'],  # Negative for expense
                             'type': 'uitgave',
-                            'beschrijving': f"Betaling {crediteur['crediteur']}"
+                            'beschrijving': f"Betaling {crediteur['crediteur']}",
+                            'transaction_id': crediteur['id'],
+                            'transaction_type': 'crediteur',
+                            'original_data': {
+                                'crediteur_naam': crediteur['crediteur'],
+                                'dag': crediteur['dag'],
+                                'bedrag': crediteur['bedrag']
+                            }
                         })
                 except ValueError:
                     # Skip invalid dates (like 31st in February)
