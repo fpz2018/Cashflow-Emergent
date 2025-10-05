@@ -612,7 +612,7 @@ const Dashboard = ({ onRefresh }) => {
                   </button>
                   <button
                     onClick={handleSaveTransaction}
-                    disabled={!editForm.beschrijving.trim() || !editForm.bedrag.trim() || loading}
+                    disabled={!editForm.beschrijving.trim() || !editForm.bedrag.trim() || !editForm.datum.trim() || loading}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-all"
                   >
                     {loading ? 'Opslaan...' : 'Opslaan'}
