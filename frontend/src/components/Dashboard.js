@@ -88,144 +88,145 @@ const Dashboard = ({ onRefresh }) => {
   }
 
   return (
-    <div className="space-y-8 fade-in">
-      {/* Header Section */}
+    <div className="space-y-6 fade-in">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold text-slate-900 gradient-text">
-            Dashboard
+            Cashflow Dashboard
           </h2>
           <p className="text-slate-600 mt-1">
-            {cashflowSummary?.today?.date ? formatDate(cashflowSummary.today.date) : 'Vandaag'}
+            {formatDate(new Date())}
           </p>
         </div>
         
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onRefresh}
-            className="px-4 py-2 text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg hover:bg-slate-50 transition-all btn-animation"
-            data-testid="refresh-button"
-          >
-            <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Vernieuwen
-          </button>
-          
-          <button
-            onClick={() => setShowTransactionForm(true)}
-            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium shadow-md hover:shadow-lg transition-all btn-animation"
-            data-testid="add-transaction-button"
-          >
-            <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Nieuwe Transactie
-          </button>
-        </div>
+        <button
+          onClick={fetchCashflowForecast}
+          className="px-4 py-2 text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg hover:bg-slate-50 transition-all"
+        >
+          <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Vernieuwen
+        </button>
       </div>
 
-      {/* Cashflow Cards */}
-      <CashflowCards 
-        cashflowSummary={cashflowSummary} 
-        formatCurrency={formatCurrency}
-      />
-
-      {/* Quick Stats */}
-      {cashflowSummary?.today && (
-        <div className="modern-card">
-          <div className="modern-card-header">
-            <h3 className="text-lg font-semibold text-slate-900">Vandaag Overzicht</h3>
-            <span className="text-sm text-slate-500">
-              {cashflowSummary.today.transactions_count} transacties
+      {/* Huidig Banksaldo - Prominent */}
+      <div className="modern-card bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <div className="text-center py-8">
+          <h3 className="text-lg font-medium text-slate-700 mb-2">Huidig Banksaldo</h3>
+          <div className="text-5xl font-bold mb-2">
+            <span className={currentBalance >= 0 ? 'text-emerald-600' : 'text-red-600'}>
+              {formatCurrency(currentBalance)}
             </span>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Income Categories */}
-            <div>
-              <h4 className="text-sm font-medium text-slate-700 mb-3">Inkomsten per Categorie</h4>
-              <div className="space-y-2">
-                {Object.entries(cashflowSummary.today.income_by_category || {}).map(([category, amount]) => (
-                  <div key={category} className="flex justify-between items-center">
-                    <span className={`category-badge category-${category}`}>
-                      {category.replace('_', ' ').toUpperCase()}
-                    </span>
-                    <span className="font-medium text-emerald-600">
-                      {formatCurrency(amount)}
-                    </span>
-                  </div>
-                ))}
-                {Object.keys(cashflowSummary.today.income_by_category || {}).length === 0 && (
-                  <p className="text-slate-500 text-sm italic">Geen inkomsten vandaag</p>
-                )}
-              </div>
-            </div>
-
-            {/* Expense Categories */}
-            <div>
-              <h4 className="text-sm font-medium text-slate-700 mb-3">Uitgaven per Categorie</h4>
-              <div className="space-y-2">
-                {Object.entries(cashflowSummary.today.expense_by_category || {}).map(([category, amount]) => (
-                  <div key={category} className="flex justify-between items-center">
-                    <span className="category-badge category-expense">
-                      {category.replace('_', ' ').toUpperCase()}
-                    </span>
-                    <span className="font-medium text-red-600">
-                      -{formatCurrency(amount)}
-                    </span>
-                  </div>
-                ))}
-                {Object.keys(cashflowSummary.today.expense_by_category || {}).length === 0 && (
-                  <p className="text-slate-500 text-sm italic">Geen uitgaven vandaag</p>
-                )}
-              </div>
-            </div>
-          </div>
+          <p className="text-slate-600">Per vandaag</p>
         </div>
-      )}
-
-      {/* Dashboard Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Transactions */}
-        <div className="modern-card">
-          <div className="modern-card-header">
-            <h3 className="text-lg font-semibold text-slate-900">Recente Transacties</h3>
-            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-              Alle transacties bekijken
-            </button>
-          </div>
-          
-          <TransactionList
-            transactions={transactions.slice(0, 5)}
-            onEdit={handleEditTransaction}
-            onDelete={onDeleteTransaction}
-            formatCurrency={formatCurrency}
-          />
-        </div>
-
-        {/* Verwachte Betalingen */}
-        <VerwachteBetalingen />
       </div>
 
-      {/* Cashflow Forecast */}
-      <CashflowForecast />
+      {/* Dagelijkse Cashflow Tabel */}
+      <div className="modern-card">
+        <div className="modern-card-header">
+          <h3 className="text-xl font-semibold text-slate-900">Dagelijkse Cashflow Overzicht</h3>
+          <p className="text-sm text-slate-500">Komende 14 dagen</p>
+        </div>
 
-      {/* Transaction Form Modal */}
-      {showTransactionForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <TransactionForm
-              transaction={editingTransaction}
-              onSubmit={editingTransaction ? 
-                (data) => handleUpdateTransaction(editingTransaction.id, data) : 
-                handleCreateTransaction
-              }
-              onCancel={() => {
-                setShowTransactionForm(false);
-                setEditingTransaction(null);
-              }}
-            />
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Datum
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Inkomsten
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Uitgaven
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Netto
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Banksaldo
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-slate-200">
+              {cashflowData?.forecast_days?.slice(0, 14).map((day, index) => {
+                const dayIncome = day.expected_income || 0;
+                const dayExpenses = Math.abs(day.expected_expenses || 0);
+                const dayNet = dayIncome - dayExpenses;
+                const isToday = day.date === new Date().toISOString().split('T')[0];
+                
+                return (
+                  <tr key={day.date} className={isToday ? 'bg-blue-50' : ''}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-slate-900">
+                        {formatDate(day.date)}
+                        {isToday && (
+                          <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            Vandaag
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                      <span className="font-medium text-emerald-600">
+                        {formatCurrency(dayIncome)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                      <span className="font-medium text-red-600">
+                        {formatCurrency(dayExpenses)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                      <span className={`font-semibold ${dayNet >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {dayNet >= 0 ? '+' : ''}{formatCurrency(dayNet)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                      <span className={`font-bold text-lg ${day.ending_balance >= 0 ? 'text-slate-900' : 'text-red-600'}`}>
+                        {formatCurrency(day.ending_balance)}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {!cashflowData?.forecast_days?.length && (
+          <div className="text-center py-8 text-slate-500">
+            Geen cashflow data beschikbaar
+          </div>
+        )}
+      </div>
+
+      {/* Quick Stats */}
+      {cashflowData && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="modern-card text-center">
+            <h4 className="text-sm font-medium text-slate-700 mb-2">Verwachte Inkomsten (30d)</h4>
+            <div className="text-2xl font-bold text-emerald-600">
+              {formatCurrency(cashflowData.total_expected_income)}
+            </div>
+          </div>
+          
+          <div className="modern-card text-center">
+            <h4 className="text-sm font-medium text-slate-700 mb-2">Verwachte Uitgaven (30d)</h4>
+            <div className="text-2xl font-bold text-red-600">
+              {formatCurrency(Math.abs(cashflowData.total_expected_expenses))}
+            </div>
+          </div>
+          
+          <div className="modern-card text-center">
+            <h4 className="text-sm font-medium text-slate-700 mb-2">Netto Prognose (30d)</h4>
+            <div className={`text-2xl font-bold ${cashflowData.net_expected >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {formatCurrency(cashflowData.net_expected)}
+            </div>
           </div>
         </div>
       )}
