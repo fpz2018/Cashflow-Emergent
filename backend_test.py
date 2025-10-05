@@ -3373,16 +3373,24 @@ ZV003,17-1-2025,Zilveren Kruis,€ 200,25"""
             return False
 
 def main():
-    print("🎯 Testing Cost Classification Functionality")
+    print("🎯 Testing Improved Bank Matching Logic")
     print("=" * 60)
-    print("Focus: Testing handmatige kostencalssificatie voor bank reconciliatie")
+    print("Focus: Sign-based matching, stricter tolerances, crediteur restrictions")
+    print("Testing fixes from review request:")
+    print("- Negative bank transactions ONLY match negative cashflow transactions")
+    print("- Positive bank transactions ONLY match positive cashflow transactions")
+    print("- No cross-sign matches (outgoing with incoming)")
+    print("- Exact matches get 95% score")
+    print("- Similar matches within €1 or 1% tolerance")
+    print("- Date window reduced to 7 days")
+    print("- Crediteuren ONLY suggested for negative bank transactions")
     print("=" * 60)
     
     tester = CashflowAPITester()
     
     # Run focused test for the review request
     try:
-        success = tester.test_cost_classification_functionality()
+        success = tester.test_improved_bank_matching_logic()
         
         # Print final results
         print("\n" + "=" * 60)
@@ -3390,7 +3398,7 @@ def main():
         print("=" * 60)
         
         status = "✅ PASSED" if success else "❌ FAILED"
-        print(f"Cost Classification Functionality: {status}")
+        print(f"Improved Bank Matching Logic: {status}")
         
         print(f"\nOverall: {tester.tests_passed}/{tester.tests_run} individual tests passed")
         
@@ -3398,14 +3406,17 @@ def main():
         print(f"Success Rate: {success_rate:.1f}%")
         
         if success:
-            print("\n🎉 COST CLASSIFICATION FUNCTIONALITY WORKING!")
-            print("✅ Classification endpoint working correctly")
-            print("✅ Validation rules working properly")
-            print("✅ Cost overview endpoints functional")
-            print("✅ Data integrity maintained")
+            print("\n🎉 IMPROVED BANK MATCHING LOGIC WORKING!")
+            print("✅ Sign-based matching prevents cross-sign matches")
+            print("✅ Crediteur matching only for negative bank transactions")
+            print("✅ Stricter tolerances: €1 or 1% for similar matches")
+            print("✅ Exact matches get 95% score priority")
+            print("✅ Date window reduced to 7 days")
+            print("✅ User complaint about outgoing matching incoming is FIXED")
         else:
-            print("\n❌ COST CLASSIFICATION HAS ISSUES")
+            print("\n❌ IMPROVED BANK MATCHING LOGIC HAS ISSUES")
             print("❌ Check the detailed output above for specific problems")
+            print("❌ User complaint about cross-sign matching may still exist")
         
         return 0 if success else 1
         
